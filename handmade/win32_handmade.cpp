@@ -2,20 +2,22 @@
 #include <Windows.h>
 #include <stdint.h>
 #include <Xinput.h>
+#include <stdio.h>
 
 #define internal static
 #define local_persist static;
 #define global_variable static;
 
-typedef uint8_t uint8;
-typedef uint16_t uint16;
-typedef uint32_t uint32;
-typedef uint64_t uint64;
-
 typedef int8_t int8;
 typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
+typedef int32 bool32;
+
+typedef uint8_t uint8;
+typedef uint16_t uint16;
+typedef uint32_t uint32;
+typedef uint64_t uint64;
 
 struct win32_offscreen_buffer
 {
@@ -42,7 +44,7 @@ global_variable win32_offscreen_buffer GlobalBackbuffer;
 typedef X_INPUT_GET_STATE(x_input_get_state);
 X_INPUT_GET_STATE(XInputGetStateStub)
 {
-	return 0;
+	return ERROR_DEVICE_NOT_CONNECTED;
 }
 global_variable x_input_get_state *XInputGetState_ = XInputGetStateStub;
 
@@ -51,7 +53,7 @@ global_variable x_input_get_state *XInputGetState_ = XInputGetStateStub;
 typedef X_INPUT_SET_STATE(x_input_set_state);
 X_INPUT_SET_STATE(XInputSetStateStub)
 {
-	return 0;
+	return ERROR_DEVICE_NOT_CONNECTED;
 }
 global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 
@@ -59,9 +61,21 @@ global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define XInputGetState XInputGetState_
 #define XInputSetState XInputSetState_
 
+template<typename T>
+T abs(T v)
+{
+	return (v < 0) ? -v : v;
+}
+
+
 internal void Win32LoadXInput()
 {
+	//TODO: test in several OSs
 	HMODULE XInputLibrary = LoadLibraryA("xinput1_3.dll");
+	if (!XInputLibrary)
+	{
+		XInputLibrary = LoadLibraryA("xinput1_3.dll");
+	}
 	if (XInputLibrary)
 	{
 		XInputGetState = (x_input_get_state*)GetProcAddress(XInputLibrary,"XInputGetState");
@@ -223,15 +237,14 @@ LRESULT CALLBACK MainWindowCallback(HWND Window,
 					OutputDebugStringA(WasDown ? "Was DOWN - " : "Was UP   - ");
 					OutputDebugStringA(IsDown ? "Is  DOWN\n" : "Is UP\n");
 				}
-				//else
-				//{
-				//	Result = DefWindowProc(Window, Message, WParam, LParam);
-				//}
 			}
-			//else
-			//{
-			//	Result = DefWindowProc(Window, Message, WParam, LParam);
-			//}
+
+			bool32 AltKeyWasDown = (LParam & (1<<29)) != 0;
+			if ((VKCode == VK_F4) && AltKeyWasDown)
+			{
+				GlobalRunning = false;
+			}
+
 		} break;
 
 		case WM_DESTROY:
@@ -325,30 +338,32 @@ int CALLBACK WinMain(HINSTANCE Instance,
 					XINPUT_STATE ControllerState;
 					if (XInputGetState(ControllerIndex, &ControllerState) == ERROR_SUCCESS)
 					{
-						//NOTe: controller is plugged in
+						//NOTE: controller is plugged in
 						//TODO: see if controlerState.dwPacketNumber increments too rapidly
 						XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
-						bool Up = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP);
-						bool Down = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
-						bool Left = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
-						bool Right = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
-						bool Start = (Pad->wButtons & XINPUT_GAMEPAD_START);
-						bool Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
-						bool LeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
-						bool RightShoulder = (Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
-						bool AButton = (Pad->wButtons & XINPUT_GAMEPAD_A);
-						bool BButton = (Pad->wButtons & XINPUT_GAMEPAD_B);
-						bool XButton = (Pad->wButtons & XINPUT_GAMEPAD_X);
-						bool YButton = (Pad->wButtons & XINPUT_GAMEPAD_Y);
+						bool32 Up = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP);
+						bool32 Down = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
+						bool32 Left = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
+						bool32 Right = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
+						bool32 Start = (Pad->wButtons & XINPUT_GAMEPAD_START);
+						bool32 Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
+						bool32 LeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
+						bool32 RightShoulder = (Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
+						bool32 AButton = (Pad->wButtons & XINPUT_GAMEPAD_A);
+						bool32 BButton = (Pad->wButtons & XINPUT_GAMEPAD_B);
+						bool32 XButton = (Pad->wButtons & XINPUT_GAMEPAD_X);
+						bool32 YButton = (Pad->wButtons & XINPUT_GAMEPAD_Y);
 
 						//This is the LEFT thumbstick
 						int16 StickX = Pad->sThumbLX;
 						int16 StickY = Pad->sThumbLY;
 
-						int16 StickRX = Pad->sThumbRX;
+						XOffset += StickX >>12;
+						YOffset += StickY >>12;
 
-						if (AButton)
-							YOffset += 2;
+						//char str[256];
+						//sprintf(str, "X= %8d, Y= %8d (%d,%d)\n", (StickX>>12), (StickY>>12), XOffset, YOffset);
+						//OutputDebugStringA(str);
 					}
 					else
 					{
@@ -363,7 +378,6 @@ int CALLBACK WinMain(HINSTANCE Instance,
 				Win32DisplayBufferInWindow(GlobalBackbuffer, DeviceContext, 
 					Dimension.Width, Dimension.Height);
 
-				++XOffset;
 			}	
 		}
 		else
