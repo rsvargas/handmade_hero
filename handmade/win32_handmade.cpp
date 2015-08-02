@@ -1,6 +1,7 @@
 
 #include <Windows.h>
 #include <stdint.h>
+#include <Xinput.h>
 
 #define internal static
 #define local_persist static;
@@ -18,12 +19,12 @@ typedef int64_t int64;
 
 struct win32_offscreen_buffer
 {
+	//NOTE: Pixels are always 32bit wide
 	BITMAPINFO Info;
 	void* Memory;
 	int Width;
 	int Height;
 	int Pitch;
-	int BytesPerPixel;
 };
 
 struct win32_window_dimension
@@ -82,7 +83,7 @@ internal void Win32ResizeDIBSection(win32_offscreen_buffer& Buffer, int Width, i
 
 	Buffer.Width = Width;
 	Buffer.Height = Height;
-	Buffer.BytesPerPixel = 4;
+	int BytesPerPixel = 4;
 
 	Buffer.Info.bmiHeader.biSize = sizeof(Buffer.Info.bmiHeader);
 	Buffer.Info.bmiHeader.biWidth = Buffer.Width;
@@ -92,20 +93,20 @@ internal void Win32ResizeDIBSection(win32_offscreen_buffer& Buffer, int Width, i
 	Buffer.Info.bmiHeader.biCompression = BI_RGB;
 
 	//Note: casey thanks Chris Hecker!!
-	int BitmapMemorySize = (Buffer.Width * Buffer.Height) * Buffer.BytesPerPixel;
+	int BitmapMemorySize = (Buffer.Width * Buffer.Height) * BytesPerPixel;
 	Buffer.Memory = VirtualAlloc(0, BitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
 
-	Buffer.Pitch = Width * Buffer.BytesPerPixel;
+	Buffer.Pitch = Width * BytesPerPixel;
 
 	//TODO: probably celar this to black
 }
 
 internal void Win32DisplayBufferInWindow(HDC DeviceContext, 
 	int WindowWidth, int WindowHeigth,
-	const win32_offscreen_buffer& Buffer,
-	int X, int Y, int Width, int Height)
+	const win32_offscreen_buffer& Buffer)
 {
 	//TODO: aspect ratio coeection
+	//TODO: Play with strech modes
 	StretchDIBits(DeviceContext,
 		0, 0, WindowWidth, WindowHeigth,//X, Y, Width, Height,
 		0, 0, Buffer.Width, Buffer.Height,//X, Y, Width, Height,
@@ -150,14 +151,9 @@ LRESULT CALLBACK MainWindowCallback(HWND Window,
 		{
 			PAINTSTRUCT Paint;
 			HDC DeviceContext = BeginPaint(Window, &Paint);
-			int X = Paint.rcPaint.left;
-			int Y = Paint.rcPaint.top;
-			int Width= Paint.rcPaint.right - Paint.rcPaint.left;
-			int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
-
 			win32_window_dimension Dimension = Win32GetWindowDimension(Window);
-			Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, GlobalBackbuffer,
-				X, Y, Width, Height);
+			Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, 
+				GlobalBackbuffer);
 			EndPaint(Window, &Paint);
 
 		} break;
@@ -182,7 +178,7 @@ int CALLBACK WinMain(HINSTANCE Instance,
 
 	Win32ResizeDIBSection(GlobalBackbuffer, 1280, 720);
 
-	WindowClass.style = CS_HREDRAW | CS_VREDRAW; //always redraw when resize
+	WindowClass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC; //always redraw when resize
 	WindowClass.lpfnWndProc = MainWindowCallback;
 	WindowClass.hInstance = Instance;
 	//WindowClass.hIcon;
@@ -207,9 +203,15 @@ int CALLBACK WinMain(HINSTANCE Instance,
 
 		if (Window)
 		{
-			Running = true;
+			// NOTE: Since we specified CS_OWNDC, we can just
+			// get one device context and user it forever because we
+			// are not sharing it with anyone
+			HDC DeviceContext = GetDC(Window);
+
 			int XOffset = 0;
 			int YOffset = 0;
+
+			Running = true;
 			while (Running)
 			{
 				MSG Message;
@@ -223,10 +225,8 @@ int CALLBACK WinMain(HINSTANCE Instance,
 					DispatchMessageA(&Message);
 				}
 				RenderWeirdGradiend(GlobalBackbuffer, XOffset, YOffset);
-				HDC DeviceContext = GetDC(Window);
 				win32_window_dimension Dimension = Win32GetWindowDimension(Window);
-				Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, GlobalBackbuffer,
-					0, 0, Dimension.Width, Dimension.Height);
+				Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, GlobalBackbuffer);
 				ReleaseDC(Window, DeviceContext);
 
 				//sprintf(str, "Redraw (%d)\n", counter++);
