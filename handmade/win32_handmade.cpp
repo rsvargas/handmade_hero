@@ -34,10 +34,43 @@ struct win32_window_dimension
 };
 
 //TODO: global for now
-global_variable bool Running;
+global_variable bool GlobalRunning;
 global_variable win32_offscreen_buffer GlobalBackbuffer;
 
-win32_window_dimension Win32GetWindowDimension(HWND Window)
+//NOTE: XInputGetState
+#define X_INPUT_GET_STATE(name) DWORD WINAPI name( DWORD dwUserIndex, XINPUT_STATE* pState)
+typedef X_INPUT_GET_STATE(x_input_get_state);
+X_INPUT_GET_STATE(XInputGetStateStub)
+{
+	return 0;
+}
+global_variable x_input_get_state *XInputGetState_ = XInputGetStateStub;
+
+//NOTE: XINputSetState
+#define X_INPUT_SET_STATE(name) DWORD WINAPI name( DWORD dwUserIndex, XINPUT_VIBRATION* pVibration )
+typedef X_INPUT_SET_STATE(x_input_set_state);
+X_INPUT_SET_STATE(XInputSetStateStub)
+{
+	return 0;
+}
+global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
+
+//NOTE: this works because XInput was included before.
+#define XInputGetState XInputGetState_
+#define XInputSetState XInputSetState_
+
+internal void Win32LoadXInput()
+{
+	HMODULE XInputLibrary = LoadLibraryA("xinput1_3.dll");
+	if (XInputLibrary)
+	{
+		XInputGetState = (x_input_get_state*)GetProcAddress(XInputLibrary,"XInputGetState");
+		XInputSetState = (x_input_set_state*)GetProcAddress(XInputLibrary, "XInputSetState");
+	}
+
+}
+
+internal win32_window_dimension Win32GetWindowDimension(HWND Window)
 {
 	win32_window_dimension Result;
 	RECT ClientRect;
@@ -101,9 +134,8 @@ internal void Win32ResizeDIBSection(win32_offscreen_buffer& Buffer, int Width, i
 	//TODO: probably celar this to black
 }
 
-internal void Win32DisplayBufferInWindow(HDC DeviceContext, 
-	int WindowWidth, int WindowHeigth,
-	const win32_offscreen_buffer& Buffer)
+internal void Win32DisplayBufferInWindow(const win32_offscreen_buffer& Buffer,
+	HDC DeviceContext, int WindowWidth, int WindowHeigth)
 {
 	//TODO: aspect ratio coeection
 	//TODO: Play with strech modes
@@ -133,7 +165,7 @@ LRESULT CALLBACK MainWindowCallback(HWND Window,
 		case WM_CLOSE:
 		{
 			//TODO: handle this witha a message to the user?
-			Running = false;
+			GlobalRunning = false;
 		} break;
 
 		case WM_ACTIVATEAPP:
@@ -141,10 +173,71 @@ LRESULT CALLBACK MainWindowCallback(HWND Window,
 			OutputDebugStringA("WM_ACTIVATEAAPP\n");
 		} break;
 
+		case WM_SYSKEYDOWN:
+		case WM_SYSKEYUP:
+		case WM_KEYDOWN:
+		case WM_KEYUP:
+		{
+			uint32 VKCode = WParam;
+			bool WasDown = (LParam & (1 << 30)) != 0;
+			bool IsDown = (LParam & (1 << 31)) == 0;
+
+			if (WasDown != IsDown)
+			{
+				if (VKCode == 'W')
+				{
+				}
+				else if (VKCode == 'A')
+				{
+				}
+				else if (VKCode == 'S')
+				{
+				}
+				else if (VKCode == 'D')
+				{
+				}
+				else if (VKCode == 'Q')
+				{
+				}
+				else if (VKCode == 'E')
+				{
+				}
+				else if (VKCode == VK_UP)
+				{
+				}
+				else if (VKCode == VK_LEFT)
+				{
+				}
+				else if (VKCode == VK_DOWN)
+				{
+				}
+				else if (VKCode == VK_RIGHT)
+				{
+				}
+				else if (VKCode == VK_ESCAPE)
+				{
+				}
+				else if (VKCode == VK_SPACE)
+				{
+					OutputDebugStringA("ESCAPE - ");
+					OutputDebugStringA(WasDown ? "Was DOWN - " : "Was UP   - ");
+					OutputDebugStringA(IsDown ? "Is  DOWN\n" : "Is UP\n");
+				}
+				//else
+				//{
+				//	Result = DefWindowProc(Window, Message, WParam, LParam);
+				//}
+			}
+			//else
+			//{
+			//	Result = DefWindowProc(Window, Message, WParam, LParam);
+			//}
+		} break;
+
 		case WM_DESTROY:
 		{
 			//TODO: handle this with a error - recreate window?
-			Running = false;
+			GlobalRunning = false;
 		} break;
 
 		case WM_PAINT:
@@ -152,8 +245,8 @@ LRESULT CALLBACK MainWindowCallback(HWND Window,
 			PAINTSTRUCT Paint;
 			HDC DeviceContext = BeginPaint(Window, &Paint);
 			win32_window_dimension Dimension = Win32GetWindowDimension(Window);
-			Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, 
-				GlobalBackbuffer);
+			Win32DisplayBufferInWindow(GlobalBackbuffer, DeviceContext, 
+				Dimension.Width, Dimension.Height);
 			EndPaint(Window, &Paint);
 
 		} break;
@@ -174,6 +267,7 @@ int CALLBACK WinMain(HINSTANCE Instance,
 	LPSTR CommandLine,
 	int ShowCode)
 {
+	Win32LoadXInput();
 	WNDCLASSA WindowClass = {}; //zero initialize
 
 	Win32ResizeDIBSection(GlobalBackbuffer, 1280, 720);
@@ -211,29 +305,65 @@ int CALLBACK WinMain(HINSTANCE Instance,
 			int XOffset = 0;
 			int YOffset = 0;
 
-			Running = true;
-			while (Running)
+			GlobalRunning = true;
+			while (GlobalRunning)
 			{
 				MSG Message;
 				while (PeekMessage(&Message, 0, 0, 0, PM_REMOVE))
 				{
 					if (Message.message == WM_QUIT)
 					{
-						Running = false;
+						GlobalRunning = false;
 					}
 					TranslateMessage(&Message);
 					DispatchMessageA(&Message);
 				}
-				RenderWeirdGradiend(GlobalBackbuffer, XOffset, YOffset);
-				win32_window_dimension Dimension = Win32GetWindowDimension(Window);
-				Win32DisplayBufferInWindow(DeviceContext, Dimension.Width, Dimension.Height, GlobalBackbuffer);
-				ReleaseDC(Window, DeviceContext);
 
-				//sprintf(str, "Redraw (%d)\n", counter++);
-				//OutputDebugStringA(str);
+				//TODO: should we poll this more fdrequently?
+				for (DWORD ControllerIndex = 0; ControllerIndex < XUSER_MAX_COUNT; ++ControllerIndex)
+				{
+					XINPUT_STATE ControllerState;
+					if (XInputGetState(ControllerIndex, &ControllerState) == ERROR_SUCCESS)
+					{
+						//NOTe: controller is plugged in
+						//TODO: see if controlerState.dwPacketNumber increments too rapidly
+						XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
+						bool Up = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP);
+						bool Down = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
+						bool Left = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
+						bool Right = (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
+						bool Start = (Pad->wButtons & XINPUT_GAMEPAD_START);
+						bool Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
+						bool LeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
+						bool RightShoulder = (Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
+						bool AButton = (Pad->wButtons & XINPUT_GAMEPAD_A);
+						bool BButton = (Pad->wButtons & XINPUT_GAMEPAD_B);
+						bool XButton = (Pad->wButtons & XINPUT_GAMEPAD_X);
+						bool YButton = (Pad->wButtons & XINPUT_GAMEPAD_Y);
+
+						//This is the LEFT thumbstick
+						int16 StickX = Pad->sThumbLX;
+						int16 StickY = Pad->sThumbLY;
+
+						int16 StickRX = Pad->sThumbRX;
+
+						if (AButton)
+							YOffset += 2;
+					}
+					else
+					{
+						//NOTE: the controller is not available
+					}
+				}
+
+
+				RenderWeirdGradiend(GlobalBackbuffer, XOffset, YOffset);
+
+				win32_window_dimension Dimension = Win32GetWindowDimension(Window);
+				Win32DisplayBufferInWindow(GlobalBackbuffer, DeviceContext, 
+					Dimension.Width, Dimension.Height);
 
 				++XOffset;
-				YOffset += 2;
 			}	
 		}
 		else
