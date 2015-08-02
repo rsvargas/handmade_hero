@@ -127,21 +127,20 @@ internal void Win32InitDSound(HWND Window, int32 SamplesPerSecond, int32 BufferS
 					if (SUCCEEDED(Error))
 					{
 						//NOTe: We have finally set the format
+						OutputDebugStringA("We've set format on primary buffer\n");
 					}
 					else
 					{
-						OutputDebugStringA("Failed set format on primary buffer\n");
 						//TODO: Diagnostic
 					}
 				}
 				else
 				{ 
-					OutputDebugStringA("Failed to create primary buffer\n");
+					//TODO: Diagnostic
 				}
 			}
 			else
 			{
-				OutputDebugStringA("Failed set cooperative level\n");
 				//TODO: Diagnostic
 			}
 
@@ -156,10 +155,10 @@ internal void Win32InitDSound(HWND Window, int32 SamplesPerSecond, int32 BufferS
 			if (SUCCEEDED(Error))
 			{
 				//NOTE: Start it playing!
+				OutputDebugStringA("Created secondary buffer\n");
 			}
 			else
 			{
-				OutputDebugStringA("Failed to create secondary buffer\n");
 			}
 
 
