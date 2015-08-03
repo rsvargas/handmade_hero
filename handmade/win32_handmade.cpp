@@ -1,12 +1,25 @@
+/*
+	TODO:  THIS IS NOT A FINAL PLATFORM LAYER
 
-#include <Windows.h>
+	- Saved game locations
+	- Getting a handle to our own executable file
+	- Asset loading path
+	- Threading (lauche a thread)
+	- Raw Input (support for multiple keyboards)
+	- Sleep/TimeBeginPeriod
+	- ClipCursor() (for multimonitor support)
+	- Fullscreen support
+	- WM_SETCURDOR (control cursor visibility)
+	- QueryCancelAutoplay
+	- WM_ACTIVATEAPP (for when we are not the active application)
+	- Blt speed improvements (BitBlt)
+	- Hardware acceleration (OpenDL or Direct3D or BOTH??)
+	- GetKeyboardLayout (for French keyboards, internation WASD support)
+
+	Just a partial list of stuff.
+*/
+
 #include <stdint.h>
-#include <Xinput.h>
-#include <dsound.h>
-#include <stdio.h>
-
-//TODO: Implement sine ourselves
-#include <math.h>
 
 #define internal static
 #define local_persist static;
@@ -27,6 +40,18 @@ typedef uint64_t uint64;
 
 typedef float real32;
 typedef double real64;
+
+#include "handmade.cpp"
+
+#include <Windows.h>
+#include <Xinput.h>
+#include <dsound.h>
+#include <stdio.h>
+
+//TODO: Implement sine ourselves
+#include <math.h>
+
+
 
 struct win32_offscreen_buffer
 {
@@ -196,8 +221,7 @@ internal void Win32InitDSound(HWND Window, int32 SamplesPerSecond, int32 BufferS
 
 internal void Win32FullSoundBuffer(win32_sound_output &Output, DWORD ByteToLock, DWORD BytesToWrite)
 {
-	//TODO: Mote Test!
-	//TODO: Switch to a sine wave
+	//TODO: More Test!
 	VOID* Region1;
 	DWORD Region1Size;
 	VOID* Region2;
@@ -252,29 +276,6 @@ internal win32_window_dimension Win32GetWindowDimension(HWND Window)
 	return Result;
 }
 
-
-internal void RenderWeirdGradiend(const win32_offscreen_buffer& Buffer, int XOffset, int YOffset)
-{
-	//TODO: Lets see what the optimizer does
-
-	uint8* Row = (uint8*)Buffer.Memory;
-	for (int Y = 0; Y < Buffer.Height; ++Y)
-	{
-		uint32* Pixel = (uint32*)Row;
-		for (int X = 0; X < Buffer.Width; ++X)
-		{
-			uint8 Green = (uint8)(Y + YOffset);
-			uint8 Blue = (uint8)(X + XOffset);
-			/*
-			Memory:   BB GG RR xx
-			Register: xx RR GG BB
-			Pixel (32-bits)
-			*/
-			*Pixel++ = (Green << 8) | Blue;
-		}
-		Row += Buffer.Pitch;
-	}
-}
 
 internal void Win32ResizeDIBSection(win32_offscreen_buffer& Buffer, int Width, int Height)
 {
@@ -565,8 +566,12 @@ int CALLBACK WinMain(HINSTANCE Instance,
 					}
 				}
 
-
-				RenderWeirdGradiend(GlobalBackbuffer, XOffset, YOffset);
+				game_offscreen_buffer Buffer = {};
+				Buffer.Memory = GlobalBackbuffer.Memory;
+				Buffer.Width = GlobalBackbuffer.Width;
+				Buffer.Height = GlobalBackbuffer.Height;
+				Buffer.Pitch = GlobalBackbuffer.Pitch;
+				GameUpdateAndRender(Buffer, XOffset, YOffset);
 
 				//Note: Direct sound output test
 				DWORD PlayCursor;
@@ -580,8 +585,6 @@ int CALLBACK WinMain(HINSTANCE Instance,
 										  SoundOutput.SecondaryBufferSize;
 					DWORD BytesToWrite;
 
-					//TODO: Change this to using a lower latencu offset from the playcursor 
-					// when we actually atart havind sound effects
 					if (ByteToLock > TargetCursor)
 					{
 						BytesToWrite = SoundOutput.SecondaryBufferSize - ByteToLock;
@@ -602,7 +605,6 @@ int CALLBACK WinMain(HINSTANCE Instance,
 				LARGE_INTEGER EndCounter;
 				QueryPerformanceCounter(&EndCounter);
 
-				//TODO: display the value here
 				int64 CyclesElapsed = endCycleCount - LastCycleCount;
 				int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
 				int32 MSPerFrame = (int32)(((1000*CounterElapsed) / PerfCounterFrequency));
@@ -610,9 +612,9 @@ int CALLBACK WinMain(HINSTANCE Instance,
 				int32 MCPF = (int32)(CyclesElapsed / (1000 * 1000));
 
 
-				char Buffer[256];
-				sprintf(Buffer, "%dms/f, %df/s, %dMc/f\n", MSPerFrame, FPS, MCPF);
-				OutputDebugStringA(Buffer);
+				//char Buffer[256];
+				//sprintf(Buffer, "%dms/f, %df/s, %dMc/f\n", MSPerFrame, FPS, MCPF);
+				//OutputDebugStringA(Buffer);
 
 				LastCounter = EndCounter;
 				LastCycleCount = endCycleCount;
