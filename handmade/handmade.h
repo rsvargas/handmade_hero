@@ -2,6 +2,29 @@
 #ifndef HANDMADE_H
 #define HANDMADE_H
 
+/*
+    NOTE:
+
+    HANDMADE_INTERNAL
+        0 = Build for public release
+        1 = Build for developer only
+
+    HANDMADE_SLOW
+        0 = No slow code allowed
+        1 = Slow code allowed!
+*/
+
+#if HANDMADE_SLOW == 1
+#define ASSERT(X) if(!(X)) { *(int*)0 = 0;}
+#else
+#define ASSERT(X)
+#endif
+
+#define KILOBYTES(V) ((V)*1024LL)
+#define MEGABYTES(V) (KILOBYTES(V)*1024LL)
+#define GIGABYTES(V) (MEGABYTES(V)*1024LL)
+#define TERABYTES(V) (GIGABYTES(V)*1024LL)
+
 #define ARRAY_COUNT(A) (sizeof(A)/sizeof((A)[0]))
 
 
@@ -73,9 +96,32 @@ struct game_input
 	game_controller_input Controllers[4];
 };
 
-void GameUpdateAndRender(const game_offscreen_buffer& Buffer,
-						 const game_input& Input,
-						 const game_sound_output_buffer& SoundOutput);
+struct game_memory
+{
+    bool32 IsInitialized;
+    uint64 PermanentStorageSize;
+    void* PermanentStorage; //NOTE: REQUIRED to be cleared to zero at startup
+
+    uint64 TransientStorageSize;
+    void* TransientStorage; //NOTE: REQUIRED to be cleared to zero at startup
+
+};
+
+void GameUpdateAndRender(game_memory* Memory,
+    const game_offscreen_buffer& Buffer,
+    const game_input& Input,
+    const game_sound_output_buffer& SoundOutput);
+
+
+struct game_state
+{
+    int ToneHz;
+    int GreenOffset;
+    int BlueOffset;
+};
+
+
+
 
 
 #endif// HANDMADE_H
