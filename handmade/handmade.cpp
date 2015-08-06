@@ -43,9 +43,35 @@ internal void RenderWeirdGradiend(const game_offscreen_buffer& Buffer, int XOffs
 }
 
 
-internal void GameUpdateAndRender(const game_offscreen_buffer& Buffer, int BlueOffset, int GreenOffset,
-								  const game_sound_output_buffer& SoundOutput, int ToneHz)
+internal void GameUpdateAndRender(const game_offscreen_buffer& Buffer, 
+								  const game_input& Input,
+								  const game_sound_output_buffer& SoundOutput)
 {
+	local_persist int BlueOffset = 0;
+	local_persist int GreenOffset = 0;
+	local_persist int ToneHz = 256;
+
+	game_controller_input Input0 = Input.Controllers[0];
+
+	if (Input0.IsAnalog)
+	{
+		//NOTE: Use analog movement tuning
+		ToneHz = 256 + (int)(128.0f*(Input0.EndY));
+		BlueOffset += (int)(4.0f*(Input0.EndX));
+	}
+	else
+	{
+		//NOTe: Use digital movement tuning
+	}
+
+	if (Input0.Down.EndedDown)
+	{
+		GreenOffset += 1;
+	}
+
+
+
+
 	//TODO: Allow sample offsets here for more robust platform options
 	GameOutputSound(SoundOutput, ToneHz);
 	RenderWeirdGradiend(Buffer, BlueOffset, GreenOffset);
