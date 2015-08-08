@@ -57,7 +57,7 @@ internal void GameUpdateAndRender(game_memory* Memory,
         debug_read_file_result Bitmap = DEBUGPlatformReadEntireFile(Filename);
         if (Bitmap.Contents)
         {
-            DEBUGPlatformWriteEntireFile("D:/dev/handmade/test.txt", Bitmap.ContentsSize, Bitmap.Contents);
+            DEBUGPlatformWriteEntireFile("test.txt", Bitmap.ContentsSize, Bitmap.Contents);
             DEBUGPlatformFreeFileMemory(Bitmap.Contents);
         }
 
@@ -70,8 +70,8 @@ internal void GameUpdateAndRender(game_memory* Memory,
     if (Input0.IsAnalog)
     {
         //NOTE: Use analog movement tuning
-        GameState->ToneHz = 256 + (int)(128.0f*(Input0.EndY));
-        GameState->BlueOffset += (int)(4.0f*(Input0.EndX));
+        GameState->ToneHz = 256 + (int)(128.0f*Input0.EndY);
+        GameState->BlueOffset += (int)(4.0f*Input0.EndX);
     }
     else
     {

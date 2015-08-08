@@ -126,7 +126,7 @@ struct game_memory
 
 };
 
-void GameUpdateAndRender(game_memory* Memory,
+internal void GameUpdateAndRender(game_memory* Memory,
     const game_offscreen_buffer& Buffer,
     const game_input& Input,
     const game_sound_output_buffer& SoundOutput);
