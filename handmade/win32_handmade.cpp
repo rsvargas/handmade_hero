@@ -85,6 +85,73 @@ global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define DIRECT_SOUND_CREATE(name) HRESULT name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
 typedef DIRECT_SOUND_CREATE(direct_sound_create);
 
+internal debug_read_file_result DEBUGPlatformReadEntireFile(char * Filename)
+{
+    debug_read_file_result Result = {};
+    HANDLE FileHandle = CreateFileA(Filename,
+        GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+    if (FileHandle != INVALID_HANDLE_VALUE)
+    {
+        LARGE_INTEGER FileSize;
+        if (GetFileSizeEx(FileHandle, &FileSize))
+        {
+            Result.ContentsSize = SafeTruncateUInt64(FileSize.QuadPart);
+            Result.Contents = VirtualAlloc(0, Result.ContentsSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+            if (Result.Contents)
+            {
+                DWORD BytesRead;
+                if (ReadFile(FileHandle, Result.Contents, Result.ContentsSize, &BytesRead, 0) &&
+                    (Result.ContentsSize== BytesRead))
+                {
+
+                }
+                else
+                {
+                    DEBUGPlatformFreeFileMemory(Result.Contents);
+                    Result.Contents = 0;
+                }
+
+            }
+        }
+        CloseHandle(FileHandle);
+    }
+    return Result;
+}
+
+internal void DEBUGPlatformFreeFileMemory(void* Memory)
+{
+    VirtualFree(Memory, 0, MEM_RELEASE);
+}
+
+internal bool32 DEBUGPlatformWriteEntireFile(char *Filename,
+    uint32 MemorySize, void* Memory)
+{
+    bool32 Result = 0;
+
+    HANDLE FileHandle = CreateFileA(Filename,
+        GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
+    if (FileHandle != INVALID_HANDLE_VALUE)
+    {
+        DWORD BytesWritten;
+        if (WriteFile(FileHandle, Memory, MemorySize, &BytesWritten, 0))
+        {
+            Result = (BytesWritten == MemorySize);
+        }
+        else
+        {
+            //TODO: logging
+        }
+        CloseHandle(FileHandle);
+    }
+    else
+    {
+        //TODO Logging
+    }
+    return Result;
+}
+
+
+
 
 template<typename T>
 T abs(T v)
@@ -496,7 +563,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE /*PrevInstance*/,
 #endif
 
 
-            game_memory GameMemory;
+            game_memory GameMemory = {};
             GameMemory.PermanentStorageSize = MEGABYTES(64);
             GameMemory.TransientStorageSize = GIGABYTES(4);
 

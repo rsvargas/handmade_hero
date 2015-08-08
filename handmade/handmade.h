@@ -14,6 +14,7 @@
         1 = Slow code allowed!
 */
 
+
 #if HANDMADE_SLOW == 1
 #define ASSERT(X) if(!(X)) { *(int*)0 = 0;}
 #else
@@ -27,9 +28,27 @@
 
 #define ARRAY_COUNT(A) (sizeof(A)/sizeof((A)[0]))
 
+inline uint32 SafeTruncateUInt64(uint64 value)
+{
+    ASSERT(value <= 0xFFFFFFFF);
+    uint32 Result = (uint32)value;
+    return Result;
+}
+
 
 
 //TODO: Services that the platform layer provides to the game
+
+#if HANDMADE_INTERNAL
+struct debug_read_file_result
+{
+    uint32 ContentsSize;
+    void* Contents;
+};
+internal debug_read_file_result DEBUGPlatformReadEntireFile(char * Filename);
+internal void DEBUGPlatformFreeFileMemory(void* Memory);
+internal bool32 DEBUGPlatformWriteEntireFile(char *Filename, uint32 MemorySize, void* Memory);   
+#endif
 
 /*
 //NOTE: Services that the game provides to the platform layer

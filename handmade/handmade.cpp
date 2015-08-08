@@ -53,10 +53,15 @@ internal void GameUpdateAndRender(game_memory* Memory,
     game_state *GameState = (game_state*)Memory->PermanentStorage;
     if (!Memory->IsInitialized)
     {
-        GameState->ToneHz = 256;
-        //GameState->GreenOffset = 0; //our allocation resets to zero!
-        //GameState->BlueOffset = 0;
+        char* Filename = __FILE__;
+        debug_read_file_result Bitmap = DEBUGPlatformReadEntireFile(Filename);
+        if (Bitmap.Contents)
+        {
+            DEBUGPlatformWriteEntireFile("D:/dev/handmade/test.txt", Bitmap.ContentsSize, Bitmap.Contents);
+            DEBUGPlatformFreeFileMemory(Bitmap.Contents);
+        }
 
+        GameState->ToneHz = 256;
         Memory->IsInitialized = true;
     }
 
