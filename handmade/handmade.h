@@ -139,8 +139,10 @@ struct game_memory
 
 internal void GameUpdateAndRender(game_memory* Memory,
     const game_offscreen_buffer& Buffer,
-    const game_input& Input,
-    const game_sound_output_buffer& SoundOutput);
+    const game_input& Input);
+
+//NOTE: At the moment, this has to be a very fast function it cannot be more than a millisecond or so.
+internal void GameGetSoundSamples(game_memory* Memory, const game_sound_output_buffer& SoundOutput);
 
 
 struct game_state

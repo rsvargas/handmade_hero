@@ -16,6 +16,10 @@ internal void GameOutputSound(const game_sound_output_buffer& SoundBuffer, real3
         *SampleOut++ = SampleValue;
 
         tSine += 2.0f * Pi32 * (1.0f / (real32)WavePeriod);
+        if (tSine > (2.0f * Pi32))
+        {
+            tSine -= (2.0f * Pi32);
+        }
     }
 }
 
@@ -45,8 +49,7 @@ internal void RenderWeirdGradiend(const game_offscreen_buffer& Buffer, int XOffs
 
 internal void GameUpdateAndRender(game_memory* Memory,
     game_offscreen_buffer& Buffer,
-    game_input& Input,
-    game_sound_output_buffer& SoundOutput)
+    game_input& Input)
 {
     ASSERT((&Input.Controllers[0].Terminator - &Input.Controllers[0].Buttons[0]) == ARRAY_COUNT(Input.Controllers->Buttons) )
     ASSERT(sizeof(game_state) <= Memory->PermanentStorageSize);
@@ -62,7 +65,7 @@ internal void GameUpdateAndRender(game_memory* Memory,
             DEBUGPlatformFreeFileMemory(Bitmap.Contents);
         }
 
-        GameState->ToneHz = 256.0f;
+        GameState->ToneHz = 512.0f;
         Memory->IsInitialized = true;
     }
 
@@ -74,7 +77,7 @@ internal void GameUpdateAndRender(game_memory* Memory,
         if (Controller->IsAnalog)
         {
             //NOTE: Use analog movement tuning
-            GameState->ToneHz = 256.0f + (128.0f*Controller->StickAverageY);
+            GameState->ToneHz = 512.0f + (128.0f*Controller->StickAverageY);
             GameState->BlueOffset += (int)(4.0f*Controller->StickAverageX);
         }
         else
@@ -95,9 +98,18 @@ internal void GameUpdateAndRender(game_memory* Memory,
         {
             GameState->GreenOffset += 1;
         }
+        if (Controller->ActionUp.EndedDown)
+        {
+            GameState->GreenOffset -= 1;
+        }
     }
 
-    //TODO: Allow sample offsets here for more robust platform options
-    GameOutputSound(SoundOutput, GameState->ToneHz);
     RenderWeirdGradiend(Buffer, GameState->BlueOffset, GameState->GreenOffset);
+}
+
+
+internal void GameGetSoundSamples(game_memory* Memory, const game_sound_output_buffer& SoundOutput)
+{
+    game_state *GameState = (game_state*)Memory->PermanentStorage;
+    GameOutputSound(SoundOutput, GameState->ToneHz);
 }
