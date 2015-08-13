@@ -75,7 +75,7 @@
 build.bat
 popd</NMakeBuildCommandLine>
     <NMakeOutput>..\build\win32_handmade.exe</NMakeOutput>
-    <NMakePreprocessorDefinitions>HANDMADE_INTERNAL=1;HANDMADE_SLOW=1</NMakePreprocessorDefinitions>
+    <NMakePreprocessorDefinitions>HANDMADE_INTERNAL=1;HANDMADE_SLOW=1;HANDMADE_WIN32=1</NMakePreprocessorDefinitions>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
