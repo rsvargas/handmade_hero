@@ -140,23 +140,27 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUGPlatformReadEntireFile)
     return Result;
 }
 
-struct win32_game_code
+inline FILETIME Win32GetLastWriteTime(const char* Filename)
 {
-    HMODULE GameCodeDLL;
-    game_update_and_render *UpdateAndRender;
-    game_get_sound_samples *GetSoundSamples;
+    FILETIME Result = {};
+    WIN32_FIND_DATAA FileData;
+    HANDLE FindHandle = FindFirstFileA(Filename, &FileData);
+    if (FindHandle)
+    {
+        Result = FileData.ftLastWriteTime;
+        FindClose(FindHandle);
+    }
+    return Result;
+}
 
-    bool32 IsValid;
-};
-
-internal win32_game_code Win32LoadGamecode()
+internal win32_game_code Win32LoadGameCode(char* SourceDLLName, char* TempDLLName)
 {
     win32_game_code Result = {};
-    Result.UpdateAndRender = GameUpdateAndRenderStub;
-    Result.GetSoundSamples = GameGetSoundSamplesStub;
 
-    CopyFileA("handmade.dll", "handmade_temp.dll", FALSE);
-    Result.GameCodeDLL = LoadLibraryA("handmade_temp.dll");
+    Result.DLLLastWriteTime = Win32GetLastWriteTime(SourceDLLName);
+
+    CopyFileA(SourceDLLName, TempDLLName, FALSE);
+    Result.GameCodeDLL = LoadLibraryA(TempDLLName);
     if (Result.GameCodeDLL)
     {
         Result.UpdateAndRender = (game_update_and_render*)
@@ -710,10 +714,52 @@ internal void Win32DebugSyncDisplay(win32_offscreen_buffer* Backbuffer,
 
 }
 
+internal void CatStrings(
+    size_t SourceACount, char* SourceA,
+    size_t SourceBCount, char* SourceB,
+    size_t DestCount, char*Dest)
+{
+    ASSERT(SourceACount + SourceBCount < DestCount)
+    for (int Index = 0; Index < SourceACount; ++Index)
+    {
+        *Dest++ = *SourceA++;
+    }
+    for (int Index = 0; Index < SourceBCount; ++Index)
+    {
+        *Dest++ = *SourceB++;
+    }
+    *Dest++ = 0;
+}
 
 int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE /*PrevInstance*/,
     LPSTR /*CommandLine*/, int /*ShowCode*/)
 {
+    char EXEFileName[MAX_PATH];
+    DWORD SizeOfFilename = GetModuleFileNameA(0, EXEFileName, sizeof(EXEFileName));
+    char *OnePastLastSlash = EXEFileName;
+    for (char *Scan = EXEFileName; *Scan; ++Scan)
+    {
+        if (*Scan == '\\')
+        {
+            OnePastLastSlash = Scan + 1;
+        }
+    }
+
+    char SourceGameCodeDLLFilename[] = "handmade.dll";
+    char SourceGameCodeDLLFullPath[MAX_PATH];
+    CatStrings(OnePastLastSlash - EXEFileName, EXEFileName,
+        sizeof(SourceGameCodeDLLFilename), SourceGameCodeDLLFilename,
+        sizeof(SourceGameCodeDLLFullPath), SourceGameCodeDLLFullPath);
+
+
+    char TempGameCodeDLLFilename[] = "handmade_temp.dll";
+    char TempGameCodeDLLFullPath[MAX_PATH];
+    CatStrings(OnePastLastSlash - EXEFileName, EXEFileName,
+        sizeof(TempGameCodeDLLFilename), TempGameCodeDLLFilename,
+        sizeof(TempGameCodeDLLFullPath), TempGameCodeDLLFullPath);
+
+
+
     LARGE_INTEGER PerfCounterFrequencyResult;
     QueryPerformanceFrequency(&PerfCounterFrequencyResult);
     GlobalPerfCountFrequency = PerfCounterFrequencyResult.QuadPart;
@@ -842,16 +888,19 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE /*PrevInstance*/,
                 bool32 SoundIsValid = false;
 
                 int64 LastCycleCount = __rdtsc();
-                win32_game_code Game = Win32LoadGamecode();
+
+                const char *SourceDLLName = "handmade.dll";
+                win32_game_code Game = Win32LoadGameCode(SourceGameCodeDLLFullPath, TempGameCodeDLLFullPath);
                 uint64 LoadCounter = 0;
 
                 while (GlobalRunning)
                 {
-
-                    if (LoadCounter++ > 120)
+                    FILETIME NewDLLWriteTime = Win32GetLastWriteTime(SourceDLLName);
+                    
+                    if (CompareFileTime(&NewDLLWriteTime, &Game.DLLLastWriteTime) != 0)
                     {
                         Win32UnloadGameCode(&Game);
-                        Game = Win32LoadGamecode();
+                        Game = Win32LoadGameCode(SourceGameCodeDLLFullPath, TempGameCodeDLLFullPath);
                         LoadCounter = 0;
                     }
 

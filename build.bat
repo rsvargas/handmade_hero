@@ -11,7 +11,8 @@ REM compilar pra winXP
 rem cl %CommonCompilerFlags% ../handmade/win32_handmade.cpp /link -subsystem:windows,5.1 %CommonLinkerFlags%
 
 rem compilar normal x64
-cl /D_USRDLL /D_WINDLL %CommonCompilerFlags% ../handmade/handmade.cpp /Fmhandmade.map /LD /link  /EXPORT:GameUpdateAndRender /EXPORT:GameGetSoundSamples
+del *.pdb >NUL 2> NUL
+cl /D_USRDLL /D_WINDLL %CommonCompilerFlags% ../handmade/handmade.cpp /Fmhandmade.map /LD /link /PDB:handmade_%date:~-4,4%%date:~-10,2%%date:~-7,2%_%hr%%time:~3,2%%time:~6,2%.pdb /EXPORT:GameUpdateAndRender /EXPORT:GameGetSoundSamples -incremental:no
 cl %CommonCompilerFlags% ../handmade/win32_handmade.cpp /Fmwin32_handmade.map /link %CommonLinkerFlags%
 
 popd
