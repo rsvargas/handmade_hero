@@ -10,8 +10,13 @@ internal void GameOutputSound(game_state& GameState, game_sound_output_buffer& S
     int16* SampleOut = SoundBuffer.Samples;
     for (int SampleIndex = 0; SampleIndex < SoundBuffer.SampleCount; ++SampleIndex)
     {
+#if 0
         real32 SineValue = sinf(GameState.tSine);
         int16 SampleValue = (int16)(SineValue*ToneVolume);
+#else
+        int16 SampleValue = 0;
+#endif
+
         *SampleOut++ = SampleValue;
         *SampleOut++ = SampleValue;
 
@@ -46,6 +51,30 @@ internal void RenderWeirdGradiend(const game_offscreen_buffer& Buffer, int XOffs
     }
 }
 
+internal void RenderPlayer(game_offscreen_buffer &Buffer, int PlayerX, int PlayerY)
+{
+    uint8 *EndOfbuffer = (uint8*)Buffer.Memory + Buffer.BytesPerPixel* Buffer.Pitch * Buffer.Height;
+    uint32 Color = 0xFFFFFFFF;
+    int Top = PlayerY;
+    int Bottom = PlayerY + 10;
+    for (int X = PlayerX; X < PlayerX + 10; ++X)
+    {
+        uint8* Pixel = ((uint8*)Buffer.Memory +
+            X* Buffer.BytesPerPixel +
+            Top * Buffer.Pitch);
+
+        for (int Y = Top; Y < Bottom; ++Y)
+        {
+            if (Pixel >= Buffer.Memory && ((Pixel + Buffer.BytesPerPixel) < EndOfbuffer))
+            {
+                *(uint32*)Pixel = Color;
+                Pixel += Buffer.Pitch;
+            }
+        }
+    }
+
+}
+
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
@@ -64,6 +93,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         }
 
         GameState->ToneHz = 512.0f;
+        GameState->tSine = 0.0f;
+
+        GameState->PlayerX = 100;
+        GameState->PlayerY = 100;
+
         Memory->IsInitialized = true;
     }
 
@@ -89,20 +123,29 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 GameState->BlueOffset += 1;
             }
 
-            //NOTe: Use digital movement tuning
+            //NOTE: Use digital movement tuning
+        }
+
+        GameState->PlayerX += (int)(7.0f*Controller->StickAverageX);
+        GameState->PlayerY -= (int)(7.0f*Controller->StickAverageY);
+
+        if (GameState->tJump > 0)
+        {
+            GameState->PlayerY += (int)(10.0f*sinf(0.5f*Pi32*GameState->tJump));
         }
 
         if (Controller->ActionDown.EndedDown)
         {
-            GameState->GreenOffset += 1;
+            GameState->tJump = 4.0f;
         }
-        if (Controller->ActionUp.EndedDown)
+        if (GameState->tJump> 0.0f)
         {
-            GameState->GreenOffset -= 1;
+            GameState->tJump -= 0.033f;
         }
     }
 
     RenderWeirdGradiend(Buffer, GameState->BlueOffset, GameState->GreenOffset);
+    RenderPlayer(Buffer, GameState->PlayerX, GameState->PlayerY); 
 }
 
 
