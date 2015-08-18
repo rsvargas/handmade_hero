@@ -9,6 +9,7 @@ struct win32_offscreen_buffer
 	int Height;
 	int Pitch;
     int BytesPerPixel;
+    int BitmapMemorySize;
 };
 
 struct win32_window_dimension
@@ -24,7 +25,6 @@ struct win32_sound_output
 	int BytesPerSample;
 	DWORD SecondaryBufferSize;
     DWORD SafetyBytes;
-	int LatencySampleCount;
 };
 
 struct win32_debug_time_marker
@@ -54,10 +54,19 @@ struct win32_game_code
 };
 
 #define WIN32_STATE_FILE_NAME_COUNT MAX_PATH
+struct win32_replay_buffer
+{
+    HANDLE FileHandle;
+    HANDLE MemoryMap;
+    char FileName[WIN32_STATE_FILE_NAME_COUNT];
+    void* MemoryBlock;
+};
+
 struct win32_state
 {
     uint64 TotalSize;
     void* GameMemoryBlock;
+    win32_replay_buffer ReplayBuffers[4];
 
     HANDLE RecordingHandle;
     int InputRecordingIndex;
@@ -66,5 +75,5 @@ struct win32_state
     int InputPlayingIndex;
 
     char EXEFileName[WIN32_STATE_FILE_NAME_COUNT];
-    char *OnePastLastEXEFileNameSlash = EXEFileName;
+    char *OnePastLastEXEFileNameSlash;
 };

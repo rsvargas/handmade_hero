@@ -53,19 +53,20 @@ internal void RenderWeirdGradiend(const game_offscreen_buffer& Buffer, int XOffs
 
 internal void RenderPlayer(game_offscreen_buffer &Buffer, int PlayerX, int PlayerY)
 {
-    uint8 *EndOfbuffer = (uint8*)Buffer.Memory + Buffer.BytesPerPixel* Buffer.Pitch * Buffer.Height;
+    uint8 *EndOfBuffer = ((uint8*)Buffer.Memory) + (Buffer.Pitch * Buffer.Height);
+    //uint8* EndOfBuffer = ((uint8*)Buffer.Memory) + Buffer.MemorySize;
     uint32 Color = 0xFFFFFFFF;
     int Top = PlayerY;
     int Bottom = PlayerY + 10;
     for (int X = PlayerX; X < PlayerX + 10; ++X)
     {
-        uint8* Pixel = ((uint8*)Buffer.Memory +
+        uint8* Pixel = (((uint8*)Buffer.Memory) +
             X* Buffer.BytesPerPixel +
             Top * Buffer.Pitch);
 
         for (int Y = Top; Y < Bottom; ++Y)
         {
-            if (Pixel >= Buffer.Memory && ((Pixel + Buffer.BytesPerPixel) < EndOfbuffer))
+            if (Pixel >= Buffer.Memory && ((Pixel + 4) < EndOfBuffer))
             {
                 *(uint32*)Pixel = Color;
                 Pixel += Buffer.Pitch;
@@ -85,11 +86,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     if (!Memory->IsInitialized)
     {
         char* Filename = __FILE__;
-        debug_read_file_result Bitmap = Memory->DEBUGPlatformReadEntireFile(Filename);
+        debug_read_file_result Bitmap = Memory->DEBUGPlatformReadEntireFile(Thread, Filename);
         if (Bitmap.Contents)
         {
-            Memory->DEBUGPlatformWriteEntireFile("test.txt", Bitmap.ContentsSize, Bitmap.Contents);
-            Memory->DEBUGPlatformFreeFileMemory(Bitmap.Contents);
+            Memory->DEBUGPlatformWriteEntireFile(Thread, "test.txt", Bitmap.ContentsSize, Bitmap.Contents);
+            Memory->DEBUGPlatformFreeFileMemory(Thread, Bitmap.Contents);
         }
 
         GameState->ToneHz = 512.0f;
@@ -146,6 +147,18 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     RenderWeirdGradiend(Buffer, GameState->BlueOffset, GameState->GreenOffset);
     RenderPlayer(Buffer, GameState->PlayerX, GameState->PlayerY); 
+
+    RenderPlayer(Buffer, Input.MouseX, Input.MouseY);
+
+    for (int ButtonIndex = 0; ButtonIndex < ARRAY_COUNT(Input.MouseButtons); ++ButtonIndex)
+    {
+        if (Input.MouseButtons[ButtonIndex].EndedDown)
+        {
+            RenderPlayer(Buffer, 10+ (20 * ButtonIndex), 10);
+        }
+    }
+    RenderPlayer(Buffer, Input.MouseX, Input.MouseY);
+
 }
 
 
