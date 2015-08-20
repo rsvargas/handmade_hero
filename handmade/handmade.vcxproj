@@ -144,9 +144,7 @@ popd</NMakeBuildCommandLine>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="handmade.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="handmade.cpp" />
     <CustomBuild Include="win32_handmade.cpp">
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pushd ..
 build.bat

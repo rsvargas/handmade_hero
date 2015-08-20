@@ -969,7 +969,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE /*PrevInstance*/,
             {
                 MonitorRefreshHz = Win32RefreshRate;
             }
-            real32 GameUpdateHz = (MonitorRefreshHz / 2.0f);
+            real32 GameUpdateHz = ((real32)MonitorRefreshHz/2.0f);
             real32 TargetSecondsPerFrame = (1.0f / (GameUpdateHz));
 
             win32_sound_output SoundOutput = {};
@@ -1061,7 +1061,6 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE /*PrevInstance*/,
                 game_input Input[2] = {};
                 game_input *NewInput = &Input[0];
                 game_input *OldInput = &Input[1];
-                NewInput->SecondsToAdvanceOverUpdate = TargetSecondsPerFrame;
 
                 LARGE_INTEGER LastCounter = Win32GetWallClock();;
                 LARGE_INTEGER FlipWallClock = LastCounter;
@@ -1082,6 +1081,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE /*PrevInstance*/,
 
                 while (GlobalRunning)
                 {
+                    NewInput->dtForFrame = TargetSecondsPerFrame;
                     FILETIME NewDLLWriteTime = Win32GetLastWriteTime(SourceDLLName);
                     
                     if (CompareFileTime(&NewDLLWriteTime, &Game.DLLLastWriteTime) != 0)
@@ -1433,18 +1433,19 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE /*PrevInstance*/,
                         }
 #endif
 
-                        real32 FPS = (1000.0f / MSPerFrame);
 
 
                         game_input *Temp = NewInput;
                         NewInput = OldInput;
                         OldInput = Temp;
 
+#if 0
+                        real32 FPS = (1000.0f / MSPerFrame);
+
                         int64 EndCycleCount = __rdtsc();
                         int64 CyclesElapsed = EndCycleCount - LastCycleCount;
                         LastCycleCount = EndCycleCount;
 
-#if 0
                         sprintf_s(Msg, "%.02fms/f, %.02ff/s, (%.02fws/f) whiles=%d sleepms=%d, Slept=%.02fms\n",
                             MSPerFrame, FPS, WorkSecondsElapsed*1000.0f, whiles, SleepMS, Slept*1000.0f);
                         OutputDebugStringA(Msg);
