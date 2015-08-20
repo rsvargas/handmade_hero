@@ -10,7 +10,7 @@ internal void GameOutputSound(game_state& GameState, game_sound_output_buffer& S
     int16* SampleOut = SoundBuffer.Samples;
     for (int SampleIndex = 0; SampleIndex < SoundBuffer.SampleCount; ++SampleIndex)
     {
-#if 1
+#if 0
         real32 SineValue = sinf(GameState.tSine);
         int16 SampleValue = (int16)(SineValue*ToneVolume);
 #else
@@ -20,58 +20,66 @@ internal void GameOutputSound(game_state& GameState, game_sound_output_buffer& S
         *SampleOut++ = SampleValue;
         *SampleOut++ = SampleValue;
 
+#if 0
         GameState.tSine += 2.0f * Pi32 * (1.0f / (real32)WavePeriod);
         if (GameState.tSine >(2.0f * Pi32))
         {
             GameState.tSine -= (2.0f * Pi32);
         }
+#endif
     }
 }
 
-internal void RenderWeirdGradiend(const game_offscreen_buffer& Buffer, int XOffset, int YOffset)
+internal int32 RoundReal32ToInt32(real32 val)
 {
-    //TODO: Lets see what the optimizer does
+    return (val > 0.0f) ? (int)(val + 0.5f) : (int)(val - 0.5f);
+}
 
-    uint8* Row = (uint8*)Buffer.Memory;
-    for (int Y = 0; Y < Buffer.Height; ++Y)
+
+internal void DrawRectangle(game_offscreen_buffer &Buffer, 
+    real32 RealMinX, real32 RealMinY, real32 RealMaxX, real32 RealMaxY,
+    uint32 Color
+    )
+{
+    int MinX = RoundReal32ToInt32(RealMinX);
+    int MinY = RoundReal32ToInt32(RealMinY);
+    int MaxX = RoundReal32ToInt32(RealMaxX);
+    int MaxY = RoundReal32ToInt32(RealMaxY);
+
+    if (MinX < 0)
     {
-        uint32* Pixel = (uint32*)Row;
-        for (int X = 0; X < Buffer.Width; ++X)
+        MinX = 0;
+    }
+
+    if (MinY < 0)
+    {
+        MinY = 0;
+    }
+
+    if (MaxX > Buffer.Width)
+    {
+        MaxX = Buffer.Width;
+    }
+
+    if (MaxY > Buffer.Height)
+    {
+        MaxY = Buffer.Height;
+    }
+
+    uint8 *EndOfBuffer = ((uint8*)Buffer.Memory) + (Buffer.Pitch * Buffer.Height);
+
+    uint8* Row= (((uint8*)Buffer.Memory) +
+        MinX * Buffer.BytesPerPixel +
+        MinY * Buffer.Pitch);
+
+    for (int Y = MinY; Y < MaxY; ++Y)
+    {
+        uint32 *Pixel = (uint32*)Row;
+        for (int X = MinX; X < MaxX; ++X)
         {
-            uint8 Green = (uint8)(Y + YOffset);
-            uint8 Blue = (uint8)(X + XOffset);
-            /*
-            Memory:   BB GG RR xx
-            Register: xx RR GG BB
-            Pixel (32-bits)
-            */
-            *Pixel++ = (Green << 8) | Blue;
+            *Pixel++ = Color;
         }
         Row += Buffer.Pitch;
-    }
-}
-
-internal void RenderPlayer(game_offscreen_buffer &Buffer, int PlayerX, int PlayerY)
-{
-    uint8 *EndOfBuffer = ((uint8*)Buffer.Memory) + (Buffer.Pitch * Buffer.Height);
-    //uint8* EndOfBuffer = ((uint8*)Buffer.Memory) + Buffer.MemorySize;
-    uint32 Color = 0xFFFFFFFF;
-    int Top = PlayerY;
-    int Bottom = PlayerY + 10;
-    for (int X = PlayerX; X < PlayerX + 10; ++X)
-    {
-        uint8* Pixel = (((uint8*)Buffer.Memory) +
-            X* Buffer.BytesPerPixel +
-            Top * Buffer.Pitch);
-
-        for (int Y = Top; Y < Bottom; ++Y)
-        {
-            if (Pixel >= Buffer.Memory && ((Pixel + 4) < EndOfBuffer))
-            {
-                *(uint32*)Pixel = Color;
-                Pixel += Buffer.Pitch;
-            }
-        }
     }
 
 }
@@ -85,20 +93,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     game_state *GameState = (game_state*)Memory->PermanentStorage;
     if (!Memory->IsInitialized)
     {
-        char* Filename = __FILE__;
-        debug_read_file_result Bitmap = Memory->DEBUGPlatformReadEntireFile(Thread, Filename);
-        if (Bitmap.Contents)
-        {
-            Memory->DEBUGPlatformWriteEntireFile(Thread, "test.txt", Bitmap.ContentsSize, Bitmap.Contents);
-            Memory->DEBUGPlatformFreeFileMemory(Thread, Bitmap.Contents);
-        }
-
-        GameState->ToneHz = 512.0f;
-        GameState->tSine = 0.0f;
-
-        GameState->PlayerX = 100;
-        GameState->PlayerY = 100;
-
         Memory->IsInitialized = true;
     }
 
@@ -110,60 +104,48 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         if (Controller->IsAnalog)
         {
             //NOTE: Use analog movement tuning
-            GameState->ToneHz = 512.0f + (128.0f*Controller->StickAverageY);
-            GameState->BlueOffset += (int)(4.0f*Controller->StickAverageX);
         }
         else
         {
-            if (Controller->MoveLeft.EndedDown)
-            {
-                GameState->BlueOffset -= 1;
-            }
-            if (Controller->MoveRight.EndedDown)
-            {
-                GameState->BlueOffset += 1;
-            }
-
             //NOTE: Use digital movement tuning
         }
 
-        GameState->PlayerX += (int)(7.0f*Controller->StickAverageX);
-        GameState->PlayerY -= (int)(7.0f*Controller->StickAverageY);
-
-        if (GameState->tJump > 0)
-        {
-            GameState->PlayerY += (int)(10.0f*sinf(0.5f*Pi32*GameState->tJump));
-        }
-
-        if (Controller->ActionDown.EndedDown)
-        {
-            GameState->tJump = 4.0f;
-        }
-        if (GameState->tJump> 0.0f)
-        {
-            GameState->tJump -= 0.033f;
-        }
     }
 
-    RenderWeirdGradiend(Buffer, GameState->BlueOffset, GameState->GreenOffset);
-    RenderPlayer(Buffer, GameState->PlayerX, GameState->PlayerY); 
-
-    RenderPlayer(Buffer, Input.MouseX, Input.MouseY);
-
-    for (int ButtonIndex = 0; ButtonIndex < ARRAY_COUNT(Input.MouseButtons); ++ButtonIndex)
-    {
-        if (Input.MouseButtons[ButtonIndex].EndedDown)
-        {
-            RenderPlayer(Buffer, 10+ (20 * ButtonIndex), 10);
-        }
-    }
-    RenderPlayer(Buffer, Input.MouseX, Input.MouseY);
-
+    DrawRectangle(Buffer, 0, 0, (real32)Buffer.Width, (real32)Buffer.Height, 0x00FF00FF);
+    DrawRectangle(Buffer, 100, 100, 110, 110, 0x0000FFFF);
 }
 
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
 {
     game_state *GameState = (game_state*)Memory->PermanentStorage;
-    GameOutputSound(*GameState, SoundOutput, GameState->ToneHz);
+    GameOutputSound(*GameState, SoundOutput, 400);
 }
+
+
+
+
+
+/*
+internal void RenderWeirdGradiend(const game_offscreen_buffer& Buffer, int XOffset, int YOffset)
+{
+    //TODO: Lets see what the optimizer does
+
+    uint8* Row = (uint8*)Buffer.Memory;
+    for (int Y = 0; Y < Buffer.Height; ++Y)
+    {
+        uint32* Pixel = (uint32*)Row;
+        for (int X = 0; X < Buffer.Width; ++X)
+        {
+            uint8 Green = (uint8)(Y + YOffset);
+            uint8 Blue = (uint8)(X + XOffset);
+            //Memory:   BB GG RR xx
+            //Register: xx RR GG BB
+            //Pixel (32-bits)
+            *Pixel++ = (Green << 8) | Blue;
+        }
+        Row += Buffer.Pitch;
+    }
+}
+*/
