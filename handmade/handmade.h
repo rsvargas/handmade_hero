@@ -71,8 +71,8 @@ struct raw_position
     int32 TileMapY;
 
     //NOTE: X and Y relative to this tilemap
-    real32 X;
-    real32 Y;
+    real32 TileRelX;
+    real32 TileRelY;
 };
 
 
@@ -83,13 +83,13 @@ struct tile_map
 
 struct world
 {
+    real32 TileSideInMeters;
+    int32 TileSizeInPixels;
     int32 CountX;
     int32 CountY;
 
     real32 UpperLeftX;
     real32 UpperLeftY;
-    real32 TileWidth;
-    real32 TileHeight;
 
     int32 TileMapCountX;
     int32 TileMapCountY;
