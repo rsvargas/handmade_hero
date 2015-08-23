@@ -1,17 +1,19 @@
 #pragma once
 
+#include <math.h>
 
 inline int32 RoundReal32ToInt32(real32 val)
 {
-    return (val > 0.0f) ? (int32)(val + 0.5f) : (int32)(val - 0.5f);
+    int32 Result = (int32)roundf(val);
+    return Result;
 }
 
 inline uint32 RoundReal32ToUInt32(real32 val)
 {
-    return (uint32)(val + 0.5f);
+    uint32 Result = (uint32)roundf(val);
+    return Result;
 }
 
-#include <math.h>
 inline int32 FloorReal32ToInt32(real32 val)
 {
     return (int32)floorf(val);
