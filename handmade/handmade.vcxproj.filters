@@ -18,9 +18,24 @@
     <ClCompile Include="handmade.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="handmade_tile.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="handmade.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="handmade_intrinsics.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="handmade_platform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="handmade_random.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="handmade_tile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
