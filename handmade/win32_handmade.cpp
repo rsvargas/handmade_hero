@@ -1083,14 +1083,13 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE /*PrevInstance*/,
 
                 int64 LastCycleCount = __rdtsc();
 
-                const char *SourceDLLName = "handmade.dll";
                 win32_game_code Game = Win32LoadGameCode(SourceGameCodeDLLFullPath, TempGameCodeDLLFullPath);
                 uint64 LoadCounter = 0;
 
                 while (GlobalRunning)
                 {
                     NewInput->dtForFrame = TargetSecondsPerFrame;
-                    FILETIME NewDLLWriteTime = Win32GetLastWriteTime(SourceDLLName);
+                    FILETIME NewDLLWriteTime = Win32GetLastWriteTime(SourceGameCodeDLLFullPath);
                     
                     if (CompareFileTime(&NewDLLWriteTime, &Game.DLLLastWriteTime) != 0)
                     {

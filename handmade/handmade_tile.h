@@ -6,9 +6,9 @@ struct tile_map_position
     uint32 AbsTileY;
     uint32 AbsTileZ;
 
-    //NOTE: X and Y relative to the tile we are in in this tilemap
-    real32 TileRelX;
-    real32 TileRelY;
+    //NOTE: Offset from the tile center
+    real32 OffsetX;
+    real32 OffsetY;
 };
 
 struct tile_chunk_position
