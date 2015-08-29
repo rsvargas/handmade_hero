@@ -1,5 +1,12 @@
 #pragma once
 
+struct tile_map_diference
+{
+    real32 dX;
+    real32 dY;
+    real32 dZ;
+};
+
 struct tile_map_position
 {
     uint32 AbsTileX;

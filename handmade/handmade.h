@@ -16,37 +16,6 @@ HANDMADE_SLOW
 
 #include "handmade_platform.h"
 
-#define internal static
-#define local_persist static
-#define global_variable static
-
-#define Pi32 3.14159265359f
-
-#if HANDMADE_SLOW == 1
-#define ASSERT(X) if(!(X)) { *(int*)0 = 0;}
-#else
-#define ASSERT(X)
-#endif
-
-#define KILOBYTES(V) ((V)*1024LL)
-#define MEGABYTES(V) (KILOBYTES(V)*1024LL)
-#define GIGABYTES(V) (MEGABYTES(V)*1024LL)
-#define TERABYTES(V) (GIGABYTES(V)*1024LL)
-
-#define ARRAY_COUNT(A) (sizeof(A)/sizeof((A)[0]))
-
-inline uint32 SafeTruncateUInt64(uint64 value)
-{
-    ASSERT(value <= 0xFFFFFFFF);
-    uint32 Result = (uint32)value;
-    return Result;
-}
-
-inline game_controller_input *GetController(game_input *Input, int ControllerIndex)
-{
-    ASSERT(ControllerIndex < ARRAY_COUNT(Input->Controllers));
-    return &Input->Controllers[ControllerIndex];
-}
 
 //
 //
@@ -92,16 +61,26 @@ struct loaded_bitmap
     uint32* Pixels;
 };
 
+struct hero_bitmaps
+{
+    int32 AlignX;
+    int32 AlignY;
+    loaded_bitmap Head;
+    loaded_bitmap Cape;
+    loaded_bitmap Torso;
+};
+
 struct game_state
 {
     memory_arena WorldArena;
     world * World;
+
+    tile_map_position CameraP;
     tile_map_position PlayerP;
 
     loaded_bitmap Backdrop;
-    loaded_bitmap HeroHead;
-    loaded_bitmap HeroCape;
-    loaded_bitmap HeroTorso;
+    uint32 HeroFacingDirection;
+    hero_bitmaps HeroBitmaps[4];
 };
 
 #endif// HANDMADE_H
