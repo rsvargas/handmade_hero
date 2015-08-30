@@ -7,6 +7,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <stddef.h>
 
 //
 // NOTE: Compilers
@@ -51,6 +52,33 @@ typedef uint64_t uint64;
 
 typedef float real32;
 typedef double real64;
+
+#define internal static
+#define local_persist static
+#define global_variable static
+
+#define Pi32 3.14159265359f
+
+#if HANDMADE_SLOW == 1
+#define ASSERT(X) if(!(X)) { *(int*)0 = 0;}
+#else
+#define ASSERT(X)
+#endif
+
+#define KILOBYTES(V) ((V)*1024LL)
+#define MEGABYTES(V) (KILOBYTES(V)*1024LL)
+#define GIGABYTES(V) (MEGABYTES(V)*1024LL)
+#define TERABYTES(V) (GIGABYTES(V)*1024LL)
+
+#define ARRAY_COUNT(A) (sizeof(A)/sizeof((A)[0]))
+
+inline uint32 SafeTruncateUInt64(uint64 value)
+{
+    ASSERT(value <= 0xFFFFFFFF);
+    uint32 Result = (uint32)value;
+    return Result;
+}
+
 
 //TODO: Services that the platform layer provides to the game
 
@@ -178,6 +206,12 @@ typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 //NOTE: At the moment, this has to be a very fast function it cannot be more than a millisecond or so.
 #define GAME_GET_SOUND_SAMPLES(name) void name(thread_context *Thread, game_memory* Memory, game_sound_output_buffer& SoundOutput)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
+
+inline game_controller_input *GetController(game_input *Input, int ControllerIndex)
+{
+    ASSERT(ControllerIndex < ARRAY_COUNT(Input->Controllers));
+    return &Input->Controllers[ControllerIndex];
+}
 
 #ifdef __cplusplus
 }
