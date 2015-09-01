@@ -21,9 +21,6 @@ HANDMADE_SLOW
 //
 //
 
-#include "handmade_intrinsics.h"
-#include "handmade_tile.h"
-
 struct memory_arena
 {
     memory_index Size;
@@ -48,6 +45,9 @@ internal void* PushSize_(memory_arena* Arena, memory_index Size)
     return Result;
 }
 
+#include "handmade_math.h"
+#include "handmade_intrinsics.h"
+#include "handmade_tile.h"
 
 struct world
 {

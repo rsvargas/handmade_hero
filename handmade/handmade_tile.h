@@ -2,8 +2,7 @@
 
 struct tile_map_diference
 {
-    real32 dX;
-    real32 dY;
+    v2 dXY;
     real32 dZ;
 };
 
@@ -14,8 +13,7 @@ struct tile_map_position
     uint32 AbsTileZ;
 
     //NOTE: Offset from the tile center
-    real32 OffsetX;
-    real32 OffsetY;
+    v2 Offset;
 };
 
 struct tile_chunk_position
