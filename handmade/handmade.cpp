@@ -511,12 +511,48 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             PlayerRight.Offset.X += 0.5f*PlayerWidth;
             PlayerRight = RecanonicalizePosition(TileMap, PlayerRight);
 
-
-            if (IsTileMapPointEmpty(TileMap, NewPlayerP) &&
-                IsTileMapPointEmpty(TileMap, PlayerLeft) &&
-                IsTileMapPointEmpty(TileMap, PlayerRight))
+            bool32 Collided = false;
+            tile_map_position ColP = {};
+            if (!IsTileMapPointEmpty(TileMap, NewPlayerP))
             {
-                if(!AreOnSameTile(&GameState->PlayerP, &NewPlayerP))
+                ColP = NewPlayerP;
+                Collided = true;
+            }
+            if (!IsTileMapPointEmpty(TileMap, PlayerLeft))
+            {
+                ColP = PlayerLeft;
+                Collided = true;
+            }
+            if (!IsTileMapPointEmpty(TileMap, PlayerRight))
+            {
+                ColP = PlayerRight;
+                Collided = true;
+            }
+
+            if (Collided)
+            {
+                v2 r = { 0, 0 };
+                if (ColP.AbsTileX < GameState->PlayerP.AbsTileX)
+                {
+                    r = v2{ 1, 0 };
+                }
+                if (ColP.AbsTileX > GameState->PlayerP.AbsTileX)
+                {   
+                    r = v2{ -1, 0 };
+                }
+                if (ColP.AbsTileY < GameState->PlayerP.AbsTileY)
+                {
+                    r = v2{ 0, 1 };
+                }
+                if (ColP.AbsTileY > GameState->PlayerP.AbsTileY)
+                {
+                    r = v2{ 0, -1 };
+                }
+                GameState->dPlayerP = GameState->dPlayerP - Inner(GameState->dPlayerP, r)*r;
+            }
+            else
+            {
+                if (!AreOnSameTile(&GameState->PlayerP, &NewPlayerP))
                 {
                     uint32 NewTileValue = GetTileValue(TileMap, NewPlayerP);
                     if (NewTileValue == 3)
@@ -577,7 +613,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
             uint32 TileID = GetTileValue(TileMap, Column, Row, Floor    );
 
-            if (TileID > 0)
+            if (TileID > 1)
             {
                 real32 Gray = -0.5f;
                 if (TileID == 2)
@@ -606,10 +642,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     (ScreenCenterY + MetersToPixels*GameState->CameraP.Offset.Y) - ((real32)RelRow)*TileSideInPixels };
                 v2 Min = Cen - TileSide;
                 v2 Max = Cen + TileSide;
-                if (Gray >= 0.0f)
-                {
-                    DrawRectangle(Buffer, Min, Max, Gray, Gray, Gray);
-                }
+
+                DrawRectangle(Buffer, Min, Max, Gray, Gray, Gray);
             }
         }
     }
