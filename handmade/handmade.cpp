@@ -383,7 +383,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         TileValue = 2;
                     }
 
-                    if (TileX == 10 && TileY == 6)
+                    if (TileX == 8 && TileY == 4)
                     {
                         if (DoorUp)
                         {
@@ -454,46 +454,54 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         else
         {
             //NOTE: Use digital movement tuning
-            v2 dPlayer = {};
+            v2 ddPlayer= {};
             if (Controller->MoveUp.EndedDown)
             {
                 GameState->HeroFacingDirection = 1;
-                dPlayer.Y = 1.0f;
+                ddPlayer.Y = 1.0f;
             }
             if (Controller->MoveDown.EndedDown)
             {
                 GameState->HeroFacingDirection = 3;
-                dPlayer.Y = -1.0f;
+                ddPlayer.Y = -1.0f;
             }
             if (Controller->MoveLeft.EndedDown)
             {
                 GameState->HeroFacingDirection = 2;
-                dPlayer.X = -1.0f;
+                ddPlayer.X = -1.0f;
             }
             if (Controller->MoveRight.EndedDown)
             {
                 GameState->HeroFacingDirection = 0;
-                dPlayer.X = 1.0f;
+                ddPlayer.X = 1.0f;
             }
-            real32 PlayerSpeed = 2.0f;
-            if(Controller->ActionUp.EndedDown)
-            {
-                PlayerSpeed = 15.0f;
-            }
-
             if(Controller->Start.EndedDown)
             {
                 Memory->IsInitialized = false;
             }
-            dPlayer *= PlayerSpeed;
 
-            if (dPlayer.X != 0.0f && dPlayer.Y != 0.0f)
+            if (ddPlayer.X != 0.0f && ddPlayer.Y != 0.0f)
             {
-                dPlayer *= 0.707106781187f; //sqrt(1/2)
+                ddPlayer*= 0.707106781187f; //sqrt(1/2)
             }
 
+            real32 PlayerSpeed = 10.0f; // m/s^2
+            if (Controller->ActionUp.EndedDown)
+            {
+                PlayerSpeed = 50.0f;// m/s^2
+            }
+            ddPlayer*= PlayerSpeed;
+
+            ddPlayer += -1.5f* GameState->dPlayerP;
+
             tile_map_position NewPlayerP = GameState->PlayerP;
-            NewPlayerP.Offset += Input.dtForFrame*dPlayer;
+            //newPos = 1/2*accel*dTime^2 + vel*dTime + pos
+            NewPlayerP.Offset = (0.5f * ddPlayer * Square(Input.dtForFrame) +
+                GameState->dPlayerP * Input.dtForFrame +
+                NewPlayerP.Offset);
+            // newVelocity = accel * dTime + vel
+            GameState->dPlayerP = Input.dtForFrame * ddPlayer + GameState->dPlayerP;
+
             NewPlayerP = RecanonicalizePosition(TileMap, NewPlayerP);
 
             tile_map_position PlayerLeft = NewPlayerP;
@@ -569,9 +577,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
             uint32 TileID = GetTileValue(TileMap, Column, Row, Floor    );
 
-            if (TileID > 1)
+            if (TileID > 0)
             {
-                real32 Gray = 0.5f;
+                real32 Gray = -0.5f;
                 if (TileID == 2)
                 {
                     Gray = 1.0f;
@@ -587,8 +595,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     Gray = 0.75f;
                 }
 
-                if ((Column == GameState->CameraP.AbsTileX) &&
-                    (Row == GameState->CameraP.AbsTileY))
+                if ((Column == GameState->PlayerP.AbsTileX) &&
+                    (Row == GameState->PlayerP.AbsTileY))
                 {
                     Gray = 0;
                 }
@@ -598,8 +606,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     (ScreenCenterY + MetersToPixels*GameState->CameraP.Offset.Y) - ((real32)RelRow)*TileSideInPixels };
                 v2 Min = Cen - TileSide;
                 v2 Max = Cen + TileSide;
-
-                DrawRectangle(Buffer, Min, Max, Gray, Gray, Gray);
+                if (Gray >= 0.0f)
+                {
+                    DrawRectangle(Buffer, Min, Max, Gray, Gray, Gray);
+                }
             }
         }
     }

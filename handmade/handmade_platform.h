@@ -180,7 +180,7 @@ typedef struct game_input
     int32 MouseY;
     int32 MouseZ;
 
-    real32 dtForFrame;
+    real32 dtForFrame; //in seconds
     //keyboard is zero
     game_controller_input Controllers[5];
 } game_input;
