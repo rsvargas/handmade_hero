@@ -2,6 +2,24 @@
 
 #include <math.h>
 
+inline real32 AbsoluteValue(real32 val)
+{
+    real32 Result = fabs(val);
+    return Result;
+}
+
+inline uint32 RotateLeft(uint32 Value, int32 Amount)
+{
+    uint32 Result = _rotl(Value, Amount);
+    return Result;
+}
+
+inline uint32 RotateRight(uint32 Value, int32 Amount)
+{
+    uint32 Result = _rotr(Value, Amount);
+    return Result;
+}
+
 inline int32 RoundReal32ToInt32(real32 val)
 {
     int32 Result = (int32)roundf(val);
