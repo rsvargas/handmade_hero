@@ -271,12 +271,19 @@ internal uint32 AddEntity(game_state* GameState)
     return EntityIndex;
 }
 
+//internal void TestWall(real32 WallX, real32 MinY, real32 MaxY, real32 RelX)
+//{
+//    tResult = (WallX - Rel.X) / PlayerDelta.X
+//}
+
 internal void MovePlayer(game_state* GameState, entity *Entity, real32 dt, v2 ddP)
 {
     tile_map *TileMap = GameState->World->TileMap;
-    if (ddP.X != 0.0f && ddP.Y != 0.0f)
+
+    real32 ddPLength = LengthSq(ddP);
+    if (ddPLength > 1.0f)
     {
-        ddP *= 0.707106781187f; //sqrt(1/2)
+        ddP *= 1.0f / SquareRoot(ddPLength);
     }
 
     real32 PlayerSpeed = 50.0f; // m/s^2
@@ -347,32 +354,29 @@ internal void MovePlayer(game_state* GameState, entity *Entity, real32 dt, v2 dd
         Entity->P = NewPlayerP;
     }
 #else
-    uint32 MinTileX = 0;
-    uint32 MinTileY = 0;
-    uint32 OnePastMaxTileX = 0;
-    uint32 OnePastMaxTileY = 0;
+    uint32 MinTileX = MINIMUM(OldPlayerP.AbsTileX, NewPlayerP.AbsTileX);
+    uint32 MinTileY = MINIMUM(OldPlayerP.AbsTileY, NewPlayerP.AbsTileY);
+    uint32 OnePastMaxTileX = MAXIMUM(OldPlayerP.AbsTileX, NewPlayerP.AbsTileX) + 1;
+    uint32 OnePastMaxTileY = MAXIMUM(OldPlayerP.AbsTileY, NewPlayerP.AbsTileY) + 1;
+
     uint32 AbsTileZ = Entity->P.AbsTileZ;
-    tile_map_position BestPlayerP = Entity->P;
-    real32 BestDistanceSq = LengthSq(PlayerDelta);
+    real32 tMinSq = 1.0f;
     for (uint32 AbsTileY = MinTileY; AbsTileY != OnePastMaxTileY; ++AbsTileY)
     {
         for (uint32 AbsTileX = MinTileX; AbsTileX != OnePastMaxTileX; ++AbsTileX)
         {
             tile_map_position TestFileP = CenteredTilePoint(AbsTileX, AbsTileY, AbsTileZ);
             uint32 TileValue = GetTileValue(TileMap, AbsTileX, AbsTileY, AbsTileZ);
-            if (IsTileValueEmpty(TileValue))
+            if (!IsTileValueEmpty(TileValue))
             {
                 v2 MinCorner = -0.5f * v2{ TileMap->TileSideInMeters, TileMap->TileSideInMeters };
                 v2 MaxCorner = 0.5f * v2{ TileMap->TileSideInMeters, TileMap->TileSideInMeters };;
 
-                tile_map_diference RelNewPlayerP = Subtract(TileMap, &TestFileP, &NewPlayerP);
-                v2 TestP = ClosestPointInRectangle(MinCorner, MaxCorner, RelNewPlayerP);
-                real32 TestDistanceSq = ;
-                if (BestDistanceSq > TestDistanceSq)
-                {
-                    BestPlayerP = ;
-                    BestDistanteSq = ;
-                }
+                tile_map_diference RelNewPlayerP = Subtract(TileMap, &NewPlayerP, &TestFileP);
+                v2 Rel = RelNewPlayerP.dXY;
+
+                tResult = (WallX - RelNewPlayerP.dXY.X) / PlayerDelta.X
+                TestWall(MinCorner.X, MinCorner.Y, MaxCorner.Y, Rel.X);
             }
         }
     }

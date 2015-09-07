@@ -17,6 +17,9 @@ HANDMADE_SLOW
 #include "handmade_platform.h"
 
 
+#define MINIMUM(A, B) ((A < B) ? (A) : (B))
+#define MAXIMUM(A, B) ((A > B) ? (A) : (B))
+
 //
 //
 //
