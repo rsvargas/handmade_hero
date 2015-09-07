@@ -49,6 +49,10 @@ inline int32 FloorReal32ToInt32(real32 val)
     return (int32)floorf(val);
 }
 
+inline int32 CeilReal32ToInt32(real32 val)
+{
+    return (int32)ceilf(val);
+}
 
 inline int32 TruncateReal32ToInt32(real32 val)
 {
