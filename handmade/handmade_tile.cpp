@@ -133,8 +133,8 @@ inline void RecanonicalizeCoord(tile_map* TileMap, uint32* Tile, real32* TileRel
     *Tile += Offset;
     *TileRel -= Offset*TileMap->TileSideInMeters;
 
-    ASSERT(*TileRel >= -0.5f*TileMap->TileSideInMeters);
-    ASSERT(*TileRel <= 0.5f*TileMap->TileSideInMeters);
+    ASSERT(*TileRel > -0.5001f*TileMap->TileSideInMeters);
+    ASSERT(*TileRel < 0.5001f*TileMap->TileSideInMeters);
 }
 
 internal tile_map_position RecanonicalizePosition(tile_map * TileMap, tile_map_position Pos)
