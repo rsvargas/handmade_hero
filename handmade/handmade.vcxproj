@@ -156,9 +156,11 @@ popd</Command>
   <ItemGroup>
     <ClInclude Include="handmade.h" />
     <ClInclude Include="handmade_intrinsics.h" />
+    <ClInclude Include="handmade_math.h" />
     <ClInclude Include="handmade_platform.h" />
     <ClInclude Include="handmade_random.h" />
     <ClInclude Include="handmade_tile.h" />
+    <ClInclude Include="win32_handmade.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\build.bat" />

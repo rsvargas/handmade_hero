@@ -38,6 +38,12 @@
     <ClInclude Include="handmade_tile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="handmade_math.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="win32_handmade.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="win32_handmade.cpp">
