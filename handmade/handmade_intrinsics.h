@@ -22,13 +22,23 @@ inline real32 AbsoluteValue(real32 val)
 
 inline uint32 RotateLeft(uint32 Value, int32 Amount)
 {
+#if COMPILER_MSVC
     uint32 Result = _rotl(Value, Amount);
+#else
+    Amount &= 31;
+    uint32 Result = (Value << Amount) | (Value >> (32 - Amount));
+#endif
     return Result;
 }
 
 inline uint32 RotateRight(uint32 Value, int32 Amount)
 {
+#if COMPILER_MSVC
     uint32 Result = _rotr(Value, Amount);
+#else
+    Amount &= 31;
+    uint32 Result = (Value << Amount) | (Value >> (32 - Amount));
+#endif
     return Result;
 }
 
