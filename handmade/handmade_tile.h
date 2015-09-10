@@ -1,6 +1,6 @@
 #pragma once
 
-struct tile_map_diference
+struct tile_map_difference
 {
     v2 dXY;
     real32 dZ;

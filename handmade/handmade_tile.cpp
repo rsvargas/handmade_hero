@@ -133,14 +133,15 @@ inline void RecanonicalizeCoord(tile_map* TileMap, uint32* Tile, real32* TileRel
     *Tile += Offset;
     *TileRel -= Offset*TileMap->TileSideInMeters;
 
-    ASSERT(*TileRel > -0.5001f*TileMap->TileSideInMeters);
-    ASSERT(*TileRel < 0.5001f*TileMap->TileSideInMeters);
+    ASSERT(*TileRel > -0.5f*TileMap->TileSideInMeters);
+    ASSERT(*TileRel < 0.5f*TileMap->TileSideInMeters);
 }
 
-internal tile_map_position RecanonicalizePosition(tile_map * TileMap, tile_map_position Pos)
+internal tile_map_position MapIntoTileSpace(tile_map * TileMap, tile_map_position BasePos, v2 Offset)
 {
-    tile_map_position Result = Pos;
+    tile_map_position Result = BasePos;
 
+    Result.Offset_ += Offset;
     RecanonicalizeCoord(TileMap, &Result.AbsTileX, &Result.Offset_.X);
     RecanonicalizeCoord(TileMap, &Result.AbsTileY, &Result.Offset_.Y);
 
@@ -156,9 +157,9 @@ inline bool32 AreOnSameTile(tile_map_position* A, tile_map_position* B)
     return Result;
 }
 
-tile_map_diference Subtract(tile_map* TileMap, tile_map_position* A, tile_map_position* B)
+tile_map_difference Subtract(tile_map* TileMap, tile_map_position* A, tile_map_position* B)
 {
-    tile_map_diference Result;
+    tile_map_difference Result;
 
     v2 dTileXY = { (real32)A->AbsTileX - (real32)B->AbsTileX,
         (real32)A->AbsTileY - (real32)B->AbsTileY };
@@ -179,11 +180,4 @@ inline tile_map_position CenteredTilePoint(uint32 AbsTileX, uint32 AbsTileY, uin
     Result.AbsTileZ = AbsTileZ;
 
     return Result;
-}
-
-inline tile_map_position Offset(tile_map *TileMap, tile_map_position P, v2 Offset)
-{
-    P.Offset_ += Offset;
-    P = RecanonicalizePosition(TileMap, P);
-    return P;
 }
