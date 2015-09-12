@@ -98,3 +98,57 @@ inline real32 LengthSq(v2 A)
     real32 Result = Inner(A, A);
     return Result;
 }
+
+struct rectangle2
+{
+    v2 Min;
+    v2 Max;
+};
+
+inline rectangle2 RectMinMax(v2 Min, v2 Max)
+{
+    rectangle2 Result;
+
+    Result.Min = Min;
+    Result.Max = Max;
+
+    return Result;
+}
+
+inline rectangle2 RectMinDim(v2 Min, v2 Dim)
+{
+    rectangle2 Result;
+
+    Result.Min = Min;
+    Result.Max = Min + Dim;
+
+    return Result;
+}
+
+inline rectangle2 RectCenterHalfDim(v2 Center, v2 HalfDim)
+{
+    rectangle2 Result;
+
+    Result.Min = Center - HalfDim;
+    Result.Max = Center + HalfDim;
+
+    return Result;
+}
+
+inline rectangle2 RectCenterDim(v2 Center, v2 Dim)
+{
+    rectangle2 Result = RectCenterHalfDim(Center, 0.5f * Dim);
+
+    return Result;
+}
+
+
+inline bool32 IsInRectangle(rectangle2 Rectangle, v2 Test)
+{
+    bool32 Result = ((Test.X >= Rectangle.Min.X) &&
+        (Test.Y >= Rectangle.Min.Y) &&
+        (Test.X < Rectangle.Max.X) &&
+        (Test.Y < Rectangle.Max.Y));
+
+    return Result;
+}
