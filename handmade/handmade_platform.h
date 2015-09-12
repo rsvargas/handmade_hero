@@ -65,6 +65,8 @@ typedef double real64;
 #define ASSERT(X)
 #endif
 
+#define INVALID_CODE_PATH ASSERT(!"InvalidCodePath")
+
 #define KILOBYTES(V) ((V)*1024LL)
 #define MEGABYTES(V) (KILOBYTES(V)*1024LL)
 #define GIGABYTES(V) (MEGABYTES(V)*1024LL)
