@@ -18,7 +18,7 @@
     <ClCompile Include="handmade.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="handmade_tile.cpp">
+    <ClCompile Include="handmade_world.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -35,13 +35,13 @@
     <ClInclude Include="handmade_random.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="handmade_tile.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="handmade_math.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="win32_handmade.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="handmade_world.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

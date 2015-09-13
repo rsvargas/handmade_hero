@@ -145,7 +145,7 @@ popd</NMakeBuildCommandLine>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="handmade.cpp" />
-    <ClCompile Include="handmade_tile.cpp" />
+    <ClCompile Include="handmade_world.cpp" />
     <CustomBuild Include="win32_handmade.cpp">
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pushd ..
 build.bat
@@ -159,7 +159,7 @@ popd</Command>
     <ClInclude Include="handmade_math.h" />
     <ClInclude Include="handmade_platform.h" />
     <ClInclude Include="handmade_random.h" />
-    <ClInclude Include="handmade_tile.h" />
+    <ClInclude Include="handmade_world.h" />
     <ClInclude Include="win32_handmade.h" />
   </ItemGroup>
   <ItemGroup>

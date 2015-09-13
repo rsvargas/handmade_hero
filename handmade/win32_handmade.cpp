@@ -1097,7 +1097,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE /*PrevInstance*/,
  
 
             game_memory GameMemory = {};
-            GameMemory.PermanentStorageSize = MEGABYTES(64);
+            GameMemory.PermanentStorageSize = MEGABYTES(256);
             GameMemory.TransientStorageSize = MEGABYTES(100); //My HDD cant write a Gb of data without freezing
             GameMemory.DEBUGPlatformFreeFileMemory = DEBUGPlatformFreeFileMemory;
             GameMemory.DEBUGPlatformReadEntireFile = DEBUGPlatformReadEntireFile;
