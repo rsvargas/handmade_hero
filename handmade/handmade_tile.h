@@ -8,9 +8,9 @@ struct tile_map_difference
 
 struct tile_map_position
 {
-    uint32 AbsTileX;
-    uint32 AbsTileY;
-    uint32 AbsTileZ;
+    int32 AbsTileX;
+    int32 AbsTileY;
+    int32 AbsTileZ;
 
     //NOTE: Offset from the tile center
     v2 Offset_;
@@ -18,29 +18,34 @@ struct tile_map_position
 
 struct tile_chunk_position
 {
-    uint32 TileChunkX;
-    uint32 TileChunkY;
-    uint32 TileChunkZ;
+    int32 TileChunkX;
+    int32 TileChunkY;
+    int32 TileChunkZ;
 
-    uint32 RelTileX;
-    uint32 RelTileY;
+    int32 RelTileX;
+    int32 RelTileY;
 };
 
 struct tile_chunk
 {
+    int32 TileChunkX;
+    int32 TileChunkY;
+    int32 TileChunkZ;
+
     uint32* Tiles;
+
+    tile_chunk* NextInHash;
 };
 
 struct tile_map
 {
-    uint32 ChunkShift;
-    uint32 ChunkMask;
-    uint32 ChunkDim;
+    int32 ChunkShift;
+    int32 ChunkMask;
+    int32 ChunkDim;
 
     real32 TileSideInMeters;
 
-    uint32 TileChunkCountX;
-    uint32 TileChunkCountY;
-    uint32 TileChunkCountZ;
-    tile_chunk *TileChunks;
+    tile_chunk TileChunkHash[4096];
 };
+
+
