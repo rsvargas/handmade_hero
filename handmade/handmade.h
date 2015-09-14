@@ -72,7 +72,7 @@ struct high_entity
 {
     v2 P; //NOTE: relative to the camera
     v2 dP;
-    uint32 AbsTileZ;
+    uint32 ChunkZ;
     uint32 FacingDirection;
 
     real32 Z;
@@ -121,10 +121,11 @@ struct game_state
     uint32 PlayerIndexForController[ARRAY_COUNT(((game_input*)0)->Controllers)];
 
     uint32 LowEntityCount;
-    low_entity LowEntities[10000];
+    low_entity LowEntities[100000];
 
     uint32 HighEntityCount;
     high_entity HighEntities_[256];
+
     loaded_bitmap Backdrop;
     loaded_bitmap Shadow;
     hero_bitmaps HeroBitmaps[4];

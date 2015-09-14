@@ -8,11 +8,11 @@ struct world_difference
 
 struct world_position
 {
-    int32 AbsTileX;
-    int32 AbsTileY;
-    int32 AbsTileZ;
+    int32 ChunkX;
+    int32 ChunkY;
+    int32 ChunkZ;
 
-    //NOTE: Offset from the tile center
+    //NOTE: Offset from the chunk center
     v2 Offset_;
 };
 
@@ -37,11 +37,11 @@ struct world_chunk
 struct world
 {
     real32 TileSideInMeters;
+    real32 ChunkSideInMeters;
 
-    int32 ChunkShift;
-    int32 ChunkMask;
-    int32 ChunkDim;
-    world_chunk WorldChunkHash[4096];
+    world_entity_block* FirstFree;
+
+    world_chunk ChunkHash[4096];
 };
 
 

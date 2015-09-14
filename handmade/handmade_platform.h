@@ -202,11 +202,11 @@ typedef struct game_memory
     debug_platform_write_entire_file *DEBUGPlatformWriteEntireFile;
 } game_memory;
 
-#define GAME_UPDATE_AND_RENDER(name) void name(thread_context *Thread, game_memory* Memory, game_offscreen_buffer& Buffer, game_input& Input)
+#define GAME_UPDATE_AND_RENDER(name) void name(thread_context *Thread, game_memory* Memory, game_offscreen_buffer* Buffer, game_input* Input)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 
 //NOTE: At the moment, this has to be a very fast function it cannot be more than a millisecond or so.
-#define GAME_GET_SOUND_SAMPLES(name) void name(thread_context *Thread, game_memory* Memory, game_sound_output_buffer& SoundOutput)
+#define GAME_GET_SOUND_SAMPLES(name) void name(thread_context *Thread, game_memory* Memory, game_sound_output_buffer* SoundOutput)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 
 inline game_controller_input *GetController(game_input *Input, int ControllerIndex)

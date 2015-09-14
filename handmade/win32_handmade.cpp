@@ -1327,7 +1327,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE /*PrevInstance*/,
                         }
                         if (Game.UpdateAndRender)
                         {
-                            Game.UpdateAndRender(&Thread, &GameMemory, Buffer, *NewInput);
+                            Game.UpdateAndRender(&Thread, &GameMemory, &Buffer, NewInput);
                         }
 
                         LARGE_INTEGER AudioWallClock = Win32GetWallClock();
@@ -1413,7 +1413,7 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE /*PrevInstance*/,
                             SoundBuffer.Samples = Samples;
                             if (Game.GetSoundSamples)
                             {
-                                Game.GetSoundSamples(&Thread, &GameMemory, SoundBuffer);
+                                Game.GetSoundSamples(&Thread, &GameMemory, &SoundBuffer);
                             }
 #if HANDMADE_INTERNAL
                             win32_debug_time_marker *Marker = &DebugTimeMarkers[DebugTimeMarkersIndex];
