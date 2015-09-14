@@ -6,8 +6,8 @@
 
 inline bool32 IsCanonical(world* World, real32 TileRel)
 {
-    bool32 Result = ((TileRel > -0.5f*World->ChunkSideInMeters) &&
-        (TileRel < 0.5f*World->ChunkSideInMeters));
+    bool32 Result = ((TileRel >= -0.5f*World->ChunkSideInMeters) &&
+        (TileRel <= 0.5f*World->ChunkSideInMeters));
 
     return Result;
 }
@@ -58,7 +58,7 @@ inline world_chunk* GetWorldChunk(world * World, int32 ChunkX, int32 ChunkY,
             break;
         }
 
-        if (Arena && (Chunk->ChunkX != 0) && (!Chunk->NextInHash))
+        if (Arena && (Chunk->ChunkX != WORLD_UNINITIALIZED) && (!Chunk->NextInHash))
         {
             Chunk->NextInHash = PushStruct(Arena, world_chunk);
             Chunk = Chunk->NextInHash;
@@ -87,12 +87,12 @@ internal void InitializeWorld(world* World, real32 TileSideInMeters)
     World->ChunkSideInMeters = (real32)TILES_PER_CHUNK*TileSideInMeters;
     World->FirstFree = 0;
 
-    for (uint32 WorldChunkIndex = 0;
-        WorldChunkIndex < ARRAY_COUNT(World->ChunkHash);
-        ++WorldChunkIndex)
+    for (uint32 ChunkIndex = 0;
+        ChunkIndex < ARRAY_COUNT(World->ChunkHash);
+        ++ChunkIndex)
     {
-        World->ChunkHash[WorldChunkIndex].ChunkX = WORLD_UNINITIALIZED;
-        World->ChunkHash[WorldChunkIndex].FirstBlock.EntityCount = 0;
+        World->ChunkHash[ChunkIndex].ChunkX = WORLD_UNINITIALIZED;
+        World->ChunkHash[ChunkIndex].FirstBlock.EntityCount = 0;
     }
 
 }
@@ -112,7 +112,7 @@ inline void RecanonicalizeCoord(world* World, int32* Tile, real32* TileRel)
     ASSERT(IsCanonical(World, *TileRel));
 }
 
-internal world_position MapIntoTileSpace(world* World, world_position BasePos, v2 Offset)
+internal world_position MapIntoChunkSpace(world* World, world_position BasePos, v2 Offset)
 {
     world_position Result = BasePos;
 
@@ -131,8 +131,9 @@ inline world_position ChunkPositionFromTilePosition(world* World,
     Result.ChunkY = AbsTileY / TILES_PER_CHUNK;
     Result.ChunkZ = AbsTileZ / TILES_PER_CHUNK;
 
-    Result.Offset_.X = (real32)(AbsTileX - (Result.ChunkX*TILES_PER_CHUNK) * World->TileSideInMeters);
-    Result.Offset_.Y = (real32)(AbsTileX - (Result.ChunkX*TILES_PER_CHUNK) * World->TileSideInMeters);
+    //
+    Result.Offset_.X = (real32)(AbsTileX - (Result.ChunkX*TILES_PER_CHUNK)) * World->TileSideInMeters;
+    Result.Offset_.Y = (real32)(AbsTileY - (Result.ChunkY*TILES_PER_CHUNK)) * World->TileSideInMeters;
 
     return Result;
 }
@@ -163,7 +164,7 @@ inline world_position CenteredChunkPoint(int32 AbsTileX, int32 AbsTileY, int32 A
     return Result;
 }
 
-inline void ChangeEntityLocation(memory_arena* Arena, world* World, uint32 LowEntityindex, 
+inline void ChangeEntityLocation(memory_arena* Arena, world* World, uint32 LowEntityIndex, 
     world_position *OldP, world_position *NewP)
 {
     if (OldP && AreInSameChunk(World, OldP, NewP))
@@ -178,14 +179,15 @@ inline void ChangeEntityLocation(memory_arena* Arena, world* World, uint32 LowEn
             ASSERT(Chunk);
             if (Chunk)
             {
+                bool32 NotFound = true;
                 world_entity_block *FirstBlock = &Chunk->FirstBlock;
                 for (world_entity_block *Block = FirstBlock;
-                    Block;
+                    Block && NotFound;
                     Block = Block->Next)
                 {
-                    for (uint32 Index = 0; Index < Block->EntityCount; ++Index)
+                    for (uint32 Index = 0; (Index < Block->EntityCount) && NotFound; ++Index)
                     {
-                        if (Block->LowEntityIndex[Index] == LowEntityindex)
+                        if (Block->LowEntityIndex[Index] == LowEntityIndex)
                         {
                             ASSERT(FirstBlock->EntityCount > 0);
                             Block->LowEntityIndex[Index] =
@@ -203,8 +205,7 @@ inline void ChangeEntityLocation(memory_arena* Arena, world* World, uint32 LowEn
                                 }
                             }
 
-                            Block = 0;
-                            break;
+                            NotFound = false;;
                         }
                     }
                 }
@@ -233,7 +234,7 @@ inline void ChangeEntityLocation(memory_arena* Arena, world* World, uint32 LowEn
         }
 
         ASSERT(Block->EntityCount < ARRAY_COUNT(Block->LowEntityIndex));
-        Block->LowEntityIndex[Block->EntityCount++] = LowEntityindex;
+        Block->LowEntityIndex[Block->EntityCount++] = LowEntityIndex;
     }
 }
 
