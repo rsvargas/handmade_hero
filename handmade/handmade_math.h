@@ -9,6 +9,32 @@ union v2
     real32 E[2];
 };
 
+union v3
+{
+    struct
+    {
+        real32 X, Y, Z;
+    };
+    struct
+    {
+        real32 R, G, B;
+    };
+    real32 E[3];
+};
+
+union v4
+{
+    struct
+    {
+        real32 X, Y, Z, W;
+    };
+    struct
+    {
+        real32 R, G, B, A;
+    };
+    real32 E[4];
+};
+
 inline v2 V2(real32 X, real32 Y)
 {
     v2 Result;
@@ -18,6 +44,29 @@ inline v2 V2(real32 X, real32 Y)
 
     return Result;
 }
+
+inline v3 V3(real32 X, real32 Y, real32 Z)
+{
+    v3 Result;
+
+    Result.X = X;
+    Result.Y = Y;
+    Result.Z = Z;
+
+    return Result;
+}
+inline v4 V4(real32 X, real32 Y, real32 Z, real32 W)
+{
+    v4 Result;
+
+    Result.X = X;
+    Result.Y = Y;
+    Result.Z = Z;
+    Result.W = W;
+
+    return Result;
+}
+
 
 inline v2 operator*(real32 A, v2 B)
 {
