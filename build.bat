@@ -9,13 +9,13 @@ rem pushd build
 cd build
 
 REM compilar pra winXP
-rem cl %CommonCompilerFlags% ../handmade/win32_handmade.cpp /link -subsystem:windows,5.1 %CommonLinkerFlags%
+rem cl %CommonCompilerFlags% ../code/win32_handmade.cpp /link -subsystem:windows,5.1 %CommonLinkerFlags%
 
 rem compilar normal x64
 del *.pdb >NUL 2> NUL
 REM Optimization switches /O2 /Oi /fp:fast
 echo WAITING FOR PDB > lock.tmp
-cl %CommonCompilerFlags% ../handmade/win32_handmade.cpp /Fmwin32_handmade.map /link %CommonLinkerFlags%
+cl %CommonCompilerFlags% ../code/win32_handmade.cpp /Fmwin32_handmade.map /link %CommonLinkerFlags%
 del lock.tmp
 echo %CD%
-cl /D_USRDLL /D_WINDLL %CommonCompilerFlags% ../handmade/handmade.cpp /Fmhandmade.map /LD /link /PDB:handmade_%random%.pdb /EXPORT:GameUpdateAndRender /EXPORT:GameGetSoundSamples -incremental:no
+cl /D_USRDLL /D_WINDLL %CommonCompilerFlags% ../code/handmade.cpp /Fmhandmade.map /LD /link /PDB:handmade_%random%.pdb /EXPORT:GameUpdateAndRender /EXPORT:GameGetSoundSamples -incremental:no
