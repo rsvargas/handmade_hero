@@ -200,7 +200,7 @@ inline void ChangeEntityLocationRaw(memory_arena* Arena, world* World, uint32 Lo
     ASSERT(!OldP || IsValid(*OldP));
     ASSERT(!NewP || IsValid(*NewP));
 
-    if (OldP && AreInSameChunk(World, OldP, NewP))
+    if (OldP && NewP && AreInSameChunk(World, OldP, NewP))
     {
         //NOTE: Leave entity where it is
     }
