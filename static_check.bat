@@ -1,5 +1,9 @@
 @echo off
 
+@echo.
+@echo -----------
+@echo.
+
 set Wildcard=*.h *.cpp *.inl *.c
 
 @echo STATICS FOUND:

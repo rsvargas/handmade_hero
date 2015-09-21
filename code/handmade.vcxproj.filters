@@ -21,6 +21,9 @@
     <ClCompile Include="handmade_world.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="handmade_sim_region.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="handmade.h">
@@ -42,6 +45,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="handmade_world.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="handmade_sim_region.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
