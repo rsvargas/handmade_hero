@@ -60,5 +60,14 @@
     <None Include="..\build.bat">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="..\shell.bat">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\static_check.bat">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="..\todo_check.bat">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

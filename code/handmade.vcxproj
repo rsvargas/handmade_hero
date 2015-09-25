@@ -166,6 +166,9 @@ popd</Command>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\build.bat" />
+    <None Include="..\shell.bat" />
+    <None Include="..\static_check.bat" />
+    <None Include="..\todo_check.bat" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
