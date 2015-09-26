@@ -31,21 +31,31 @@ struct memory_arena
     memory_index Used;
 };
 
-internal void InitializeArena(memory_arena* Arena, memory_index Size, uint8* Base)
+inline void InitializeArena(memory_arena* Arena, memory_index Size, void *Base)
 {
     Arena->Size = Size;
-    Arena->Base = Base;
+    Arena->Base = (uint8*)Base;
     Arena->Used = 0;
 }
 
 #define PushStruct(Arena, Type) (Type*)PushSize_(Arena, sizeof(Type))
 #define PushArray(Arena, Count, Type) (Type*)PushSize_(Arena, (Count)*sizeof(Type))
-internal void* PushSize_(memory_arena* Arena, memory_index Size)
+inline void* PushSize_(memory_arena* Arena, memory_index Size)
 {
-    ASSERT((Arena->Used + Size) <= Arena->Size);
+    Assert((Arena->Used + Size) <= Arena->Size);
     void* Result = Arena->Base + Arena->Used;
     Arena->Used += Size;
     return Result;
+}
+
+#define ZeroStruct(Instance) ZeroSize(sizeof(Instance), &(Instance))
+inline void ZeroSize(memory_index Size, void* Ptr)
+{
+    uint8 *Byte = (uint8 *)Ptr;
+    while(Size--)
+    {
+        *Byte = 0;
+    }
 }
 
 #include "handmade_intrinsics.h"
@@ -85,6 +95,14 @@ struct entity_visible_piece
     v2 Dim;
 };
 
+struct controlled_hero
+{
+    uint32 EntityIndex;
+    v2 ddP;
+    v2 dSword;
+    real32 dZ;
+};
+
 struct game_state
 {
     memory_arena WorldArena;
@@ -93,7 +111,7 @@ struct game_state
     uint32 CameraFollowingEntityIndex;
     world_position CameraP;
 
-    uint32 PlayerIndexForController[ARRAY_COUNT(((game_input*)0)->Controllers)];
+    controlled_hero ControlledHeroes[ArrayCount(((game_input*)0)->Controllers)];
 
     uint32 LowEntityCount;
     low_entity LowEntities[100000];

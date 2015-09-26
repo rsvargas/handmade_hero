@@ -147,6 +147,7 @@ popd</NMakeBuildCommandLine>
     <ClCompile Include="handmade.cpp" />
     <ClCompile Include="handmade_world.cpp" />
     <ClCompile Include="handmade_sim_region.cpp" />
+    <ClCompile Include="handmade_entity.cpp" />
     <CustomBuild Include="win32_handmade.cpp">
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pushd ..
 build.bat

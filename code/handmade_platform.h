@@ -22,7 +22,7 @@ extern "C" {
 
 #if !COMPILER_MSVC && !COMPILER_LLVM
 #if _MSC_VER
-#undef COMPILER_MSVC 
+#undef COMPILER_MSVC
 #define COMPILER_MSVC 1
 #else
 #undef COMPILER_LLVM
@@ -60,23 +60,23 @@ typedef double real64;
 #define Pi32 3.14159265359f
 
 #if HANDMADE_SLOW == 1
-#define ASSERT(X) if(!(X)) { *(int*)0 = 0;}
+#define Assert(X) if(!(X)) { *(int*)0 = 0;}
 #else
-#define ASSERT(X)
+#define Assert(X)
 #endif
 
-#define INVALID_CODE_PATH ASSERT(!"InvalidCodePath")
+#define INVALID_CODE_PATH Assert(!"InvalidCodePath")
 
 #define KILOBYTES(V) ((V)*1024LL)
 #define MEGABYTES(V) (KILOBYTES(V)*1024LL)
 #define GIGABYTES(V) (MEGABYTES(V)*1024LL)
 #define TERABYTES(V) (GIGABYTES(V)*1024LL)
 
-#define ARRAY_COUNT(A) (sizeof(A)/sizeof((A)[0]))
+#define ArrayCount(A) (sizeof(A)/sizeof((A)[0]))
 
 inline uint32 SafeTruncateUInt64(uint64 value)
 {
-    ASSERT(value <= 0xFFFFFFFF);
+    Assert(value <= 0xFFFFFFFF);
     uint32 Result = (uint32)value;
     return Result;
 }
@@ -211,7 +211,7 @@ typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 
 inline game_controller_input *GetController(game_input *Input, int ControllerIndex)
 {
-    ASSERT(ControllerIndex < ARRAY_COUNT(Input->Controllers));
+    Assert(ControllerIndex < ArrayCount(Input->Controllers));
     return &Input->Controllers[ControllerIndex];
 }
 

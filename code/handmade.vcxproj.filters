@@ -24,6 +24,9 @@
     <ClCompile Include="handmade_sim_region.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="handmade_entity.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="handmade.h">

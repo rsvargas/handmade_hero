@@ -3,16 +3,17 @@
 
 internal sim_entity_hash *GetHashFromStorageIndex(sim_region *SimRegion, uint32 StorageIndex)
 {
-    ASSERT(StorageIndex);
+    Assert(StorageIndex);
     sim_entity_hash *Result = 0;
     uint32 HashValue = StorageIndex;
     for(uint32 Offset = 0;
-        Offset < ARRAY_COUNT(SimRegion->Hash);
+        Offset < ArrayCount(SimRegion->Hash);
         ++Offset)
     {
-        sim_entity_hash *Entry = SimRegion->Hash +
-            ((HashValue + Offset) & (ARRAY_COUNT(SimRegion->Hash) -1));
-        if((Entry->Index == StorageIndex) || (Entry->Index == 0))
+        uint32 HashMask = (ArrayCount(SimRegion->Hash) -1);
+        uint32 HashIndex = ((HashValue + Offset) & HashMask);
+        sim_entity_hash *Entry = SimRegion->Hash + HashIndex;
+        if((Entry->Index == 0) || (Entry->Index == StorageIndex))
         {
             Result = Entry;
             break;
@@ -24,7 +25,7 @@ internal sim_entity_hash *GetHashFromStorageIndex(sim_region *SimRegion, uint32 
 internal void MapStorageIndexToEntity(sim_region *SimRegion, uint32 StorageIndex, sim_entity *Entity)
 {
     sim_entity_hash *Entry = GetHashFromStorageIndex(SimRegion, StorageIndex);
-    ASSERT((Entry->Index == 0) || (Entry->Index == StorageIndex));
+    Assert((Entry->Index == 0) || (Entry->Index == StorageIndex));
     Entry->Index = StorageIndex;
     Entry->Ptr = Entity;
 }
@@ -66,8 +67,9 @@ inline void StoreEntityReference( entity_reference *Ref)
 internal sim_entity *AddEntity(game_state* GameState, sim_region* SimRegion,
     uint32 StorageIndex, low_entity* Source)
 {
-    ASSERT(StorageIndex);
+    Assert(StorageIndex);
     sim_entity *Entity = 0;
+
     if(SimRegion->EntityCount < SimRegion->MaxEntityCount)
     {
         Entity = SimRegion->Entities + SimRegion->EntityCount++;
@@ -112,12 +114,13 @@ internal sim_entity *AddEntity(game_state* GameState, sim_region* SimRegion, uin
             Dest->P = GetSimSpaceP(SimRegion, Source);
         }
     }
+    return Dest;
 }
 
 internal sim_region *BeginSim(memory_arena *SimArena, game_state* GameState, world *World, world_position Origin, rectangle2 Bounds)
 {
-    //TODO: CLEAR THE HASH TABLE!
     sim_region *SimRegion = PushStruct(SimArena, sim_region);
+    ZeroStruct(SimRegion->Hash);
 
     SimRegion->World = World;
     SimRegion->Origin = Origin;
@@ -161,7 +164,7 @@ internal sim_region *BeginSim(memory_arena *SimArena, game_state* GameState, wor
         }
     }
 
-
+    return SimRegion;
 }
 
 
@@ -170,7 +173,7 @@ internal void EndSim(sim_region *Region, game_state *GameState)
     sim_entity *Entity = Region->Entities;
     for(uint32 EntityIndex = 0;
         EntityIndex < Region->EntityCount;
-        ++EntityIndex)
+        ++EntityIndex, ++Entity)
     {
         low_entity *Stored = GameState->LowEntities + Entity->StorageIndex;
 
@@ -180,7 +183,7 @@ internal void EndSim(sim_region *Region, game_state *GameState)
         world_position NewP = MapIntoChunkSpace(GameState->World, Region->Origin, Entity->P);
         ChangeEntityLocation(&GameState->WorldArena, GameState->World, Entity->StorageIndex, Stored,
             &Stored->P, &NewP);
-        
+
         if(Entity->StorageIndex == GameState->CameraFollowingEntityIndex)
         {
             world_position NewCameraP = GameState->CameraP;
@@ -358,4 +361,3 @@ internal void MoveEntity(sim_region * SimRegion, sim_entity *Entity, real32 dt, 
     }
 
 }
-
