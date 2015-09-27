@@ -72,7 +72,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <NMakeBuildCommandLine>pushd ..
-build.bat
+rem build.bat
 popd</NMakeBuildCommandLine>
     <NMakeOutput>..\build\win32_handmade.exe</NMakeOutput>
     <NMakePreprocessorDefinitions>HANDMADE_INTERNAL=1;HANDMADE_SLOW=1;HANDMADE_WIN32=1</NMakePreprocessorDefinitions>

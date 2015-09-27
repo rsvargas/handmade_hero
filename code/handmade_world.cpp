@@ -227,7 +227,7 @@ inline void ChangeEntityLocationRaw(memory_arena* Arena, world* World, uint32 Lo
                             Block->LowEntityIndex[Index] =
                                 FirstBlock->LowEntityIndex[--FirstBlock->EntityCount];
 
-                            if (FirstBlock->EntityCount == 1)
+                            if (FirstBlock->EntityCount == 0)
                             {
                                 if (FirstBlock->Next)
                                 {
@@ -239,7 +239,7 @@ inline void ChangeEntityLocationRaw(memory_arena* Arena, world* World, uint32 Lo
                                 }
                             }
 
-                            NotFound = false;;
+                            NotFound = false;
                         }
                     }
                 }
@@ -276,16 +276,31 @@ inline void ChangeEntityLocationRaw(memory_arena* Arena, world* World, uint32 Lo
 }
 
 inline void ChangeEntityLocation(memory_arena* Arena, world* World,
-    uint32 LowEntityIndex, low_entity *LowEntity,
-    world_position *OldP, world_position *NewP)
+    uint32 LowEntityIndex, low_entity *LowEntity, world_position NewPInit)
 {
+    world_position *OldP = 0;
+    world_position *NewP = 0;
+
+    if(!IsSet(&LowEntity->Sim, EntityFlag_Nonspatial) && IsValid(LowEntity->P))
+    {
+        OldP = &LowEntity->P;
+    }
+
+    if(IsValid(NewPInit))
+    {
+        NewP = &NewPInit;
+    }
+
     ChangeEntityLocationRaw(Arena, World, LowEntityIndex, OldP, NewP);
+
     if(NewP)
     {
         LowEntity->P = *NewP;
+        ClearFlag(&LowEntity->Sim, EntityFlag_Nonspatial);
     }
     else
     {
         LowEntity->P = NullPosition();
+        AddFlag(&LowEntity->Sim, EntityFlag_Nonspatial);
     }
 }

@@ -53,21 +53,41 @@ inline void UpdateMonster(sim_region *SimRegion, sim_entity *Entity, real32 dt)
 {
 }
 
-inline void UpdateSword(sim_region *SimRegion, sim_entity *Entity, real32 dt)
+inline void MakeEntityNonSpatial(sim_entity *Entity)
 {
-    move_spec MoveSpec = DefaultMoveSpec();
-    MoveSpec.UnitMaxAccelVector = false;
-    MoveSpec.Speed = 0.0f;
-    MoveSpec.Drag = 0.0f;
-
-    v2 OldP = Entity->P;
-    MoveEntity(SimRegion, Entity, dt, &MoveSpec, V2(0, 0));
-    real32 DistanceTraveled = Length(Entity->P - OldP);
-
-    Entity->DistanceRemaining -= DistanceTraveled;
-    if(Entity->DistanceRemaining < 0.0f)
-    {
-        Assert(!"need to make entities to be able no th be there!");
-    }
+    AddFlag(Entity, EntityFlag_Nonspatial);
+    Entity->P = InvalidP;
 }
 
+inline void MakeEntitySpatial(sim_entity *Entity, v2 P, v2 dP)
+{
+    ClearFlag(Entity, EntityFlag_Nonspatial);
+    Entity->P = P;
+    Entity->dP = dP;
+}
+
+
+inline void UpdateSword(sim_region *SimRegion, sim_entity *Entity, real32 dt)
+{
+    if(IsSet(Entity, EntityFlag_Nonspatial))
+    {
+
+    }
+    else
+    {
+        move_spec MoveSpec = DefaultMoveSpec();
+        MoveSpec.UnitMaxAccelVector = false;
+        MoveSpec.Speed = 0.0f;
+        MoveSpec.Drag = 0.0f;
+
+        v2 OldP = Entity->P;
+        MoveEntity(SimRegion, Entity, dt, &MoveSpec, V2(0, 0));
+        real32 DistanceTraveled = Length(Entity->P - OldP);
+
+        Entity->DistanceRemaining -= DistanceTraveled;
+        if(Entity->DistanceRemaining < 0.0f)
+        {
+            MakeEntityNonSpatial(Entity);
+        }
+    }
+}

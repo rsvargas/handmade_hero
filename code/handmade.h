@@ -54,7 +54,7 @@ inline void ZeroSize(memory_index Size, void* Ptr)
     uint8 *Byte = (uint8 *)Ptr;
     while(Size--)
     {
-        *Byte = 0;
+        *Byte++ = 0;
     }
 }
 
@@ -62,6 +62,7 @@ inline void ZeroSize(memory_index Size, void* Ptr)
 #include "handmade_math.h"
 #include "handmade_world.h"
 #include "handmade_sim_region.h"
+#include "handmade_entity.h"
 
 struct loaded_bitmap
 {
