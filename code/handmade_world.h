@@ -43,5 +43,3 @@ struct world
 
     world_chunk ChunkHash[4096];
 };
-
-

@@ -74,7 +74,7 @@ inline v2 operator*(real32 A, v2 B)
 
     Result.X = A*B.X;
     Result.Y = A*B.Y;
-    
+
     return Result;
 }
 
@@ -204,6 +204,17 @@ inline rectangle2 RectCenterHalfDim(v2 Center, v2 HalfDim)
 
     Result.Min = Center - HalfDim;
     Result.Max = Center + HalfDim;
+
+    return Result;
+}
+
+
+inline rectangle2 AddRadiusTo(rectangle2 A, real32 RadiusW, real32 RadiusH)
+{
+    rectangle2 Result;
+
+    Result.Min = A.Min - V2(RadiusW, RadiusH);
+    Result.Max = A.Max + V2(RadiusH, RadiusW);
 
     return Result;
 }
