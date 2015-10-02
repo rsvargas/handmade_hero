@@ -57,6 +57,8 @@ struct sim_entity
     real32 Z;
     real32 dZ;
 
+    real32 DistanceLimit;
+
     uint32 ChunkZ;
 
     real32 Height;
@@ -71,7 +73,6 @@ struct sim_entity
     hit_point HitPoint[16];
 
     entity_reference Sword;
-    real32 DistanceRemaining;
 };
 
 struct sim_entity_hash
