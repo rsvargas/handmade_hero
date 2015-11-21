@@ -1506,14 +1506,14 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE /*PrevInstance*/,
 
 #if HANDMADE_INTERNAL
                         {
-                            DWORD PlayCursor;
-                            DWORD WriteCursor;
-                            if (GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor) == DS_OK)
+                            DWORD CurPlayCursor;
+                            DWORD CurWriteCursor;
+                            if (GlobalSecondaryBuffer->GetCurrentPosition(&CurPlayCursor, &CurWriteCursor) == DS_OK)
                             {
                                 Assert(DebugTimeMarkersIndex < ArrayCount(DebugTimeMarkers));
                                 win32_debug_time_marker *Marker = &DebugTimeMarkers[DebugTimeMarkersIndex];
-                                Marker->FlipPlayCursor = PlayCursor;
-                                Marker->FlipWriteCursor = WriteCursor;
+                                Marker->FlipPlayCursor = CurPlayCursor;
+                                Marker->FlipWriteCursor = CurWriteCursor;
                             }
                         }
 #endif
