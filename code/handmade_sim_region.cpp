@@ -264,30 +264,33 @@ internal bool32 ShouldCollide(game_state *GameState, sim_entity *A, sim_entity *
 {
     bool32 Result = false;
 
-    if(A->StorageIndex > B->StorageIndex)
+    if (A != B)
     {
-        sim_entity *Temp = A;
-        A = B;
-        B = Temp;
-    }
-
-    if( !IsSet(A, EntityFlag_Nonspatial) &&
-        !IsSet(B, EntityFlag_Nonspatial))
-    {
-        Result = true;
-    }
-
-    //TODO: BETTER HASH FUCNTION
-    uint32 HashBucket = A->StorageIndex & (ArrayCount(GameState->CollisionRuleHash) - 1);
-    for(pairwise_collision_rule* Rule = GameState->CollisionRuleHash[HashBucket];
-        Rule;
-        Rule = Rule->NextInHash)
-    {
-        if( (Rule->StorageIndexA == A->StorageIndex) &&
-            (Rule->StorageIndexB == B->StorageIndex))
+        if (A->StorageIndex > B->StorageIndex)
         {
-            Result = Rule->ShouldCollide;
-            break;
+            sim_entity *Temp = A;
+            A = B;
+            B = Temp;
+        }
+
+        if (!IsSet(A, EntityFlag_Nonspatial) &&
+            !IsSet(B, EntityFlag_Nonspatial))
+        {
+            Result = true;
+        }
+
+        //TODO: BETTER HASH FUCNTION
+        uint32 HashBucket = A->StorageIndex & (ArrayCount(GameState->CollisionRuleHash) - 1);
+        for (pairwise_collision_rule* Rule = GameState->CollisionRuleHash[HashBucket];
+        Rule;
+            Rule = Rule->NextInHash)
+        {
+            if ((Rule->StorageIndexA == A->StorageIndex) &&
+                (Rule->StorageIndexB == B->StorageIndex))
+            {
+                Result = Rule->ShouldCollide;
+                break;
+            }
         }
     }
 
