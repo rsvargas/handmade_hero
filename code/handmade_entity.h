@@ -1,6 +1,6 @@
 #pragma once
 
-#define InvalidP V2(100000.0f, 100000.0f)
+#define InvalidP V3(100000.0f, 100000.0f, 100000.0f)
 
 inline bool32 IsSet(sim_entity *Entity, uint32 Flag)
 {
@@ -25,7 +25,7 @@ inline void MakeEntityNonSpatial(sim_entity *Entity)
     Entity->P = InvalidP;
 }
 
-inline void MakeEntitySpatial(sim_entity *Entity, v2 P, v2 dP)
+inline void MakeEntitySpatial(sim_entity *Entity, v3 P, v3 dP)
 {
     ClearFlag(Entity, EntityFlag_Nonspatial);
     Entity->P = P;

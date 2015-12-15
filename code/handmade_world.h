@@ -1,11 +1,5 @@
 #pragma once
 
-struct world_difference
-{
-    v2 dXY;
-    real32 dZ;
-};
-
 struct world_position
 {
     int32 ChunkX;
@@ -13,7 +7,7 @@ struct world_position
     int32 ChunkZ;
 
     //NOTE: Offset from the chunk center
-    v2 Offset_;
+    v3 Offset_;
 };
 
 struct world_entity_block
@@ -37,7 +31,8 @@ struct world_chunk
 struct world
 {
     real32 TileSideInMeters;
-    real32 ChunkSideInMeters;
+    real32 TileDepthInMeters;
+    v3 ChunkDimInMeters;
 
     world_entity_block* FirstFree;
 
