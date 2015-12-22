@@ -23,6 +23,7 @@
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>handmade</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <ProjectName>handmade</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -72,6 +73,9 @@
     <NMakeBuildCommandLine>pushd $(SolutionDir)
 $(SolutionDir)\build.bat
 popd</NMakeBuildCommandLine>
+    <NMakePreprocessorDefinitions>HANDMADE_INTERNAL=1;HANDMADE_SLOW=1;HANDMADE_WIN32</NMakePreprocessorDefinitions>
+    <NMakeIncludeSearchPath>C:\dev\handmade_hero\code</NMakeIncludeSearchPath>
+    <NMakeForcedIncludes>handmade.cpp</NMakeForcedIncludes>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -156,12 +160,7 @@ popd</NMakeBuildCommandLine>
     <ClCompile Include="handmade_world.cpp" />
     <ClCompile Include="handmade_sim_region.cpp" />
     <ClCompile Include="handmade_entity.cpp" />
-    <CustomBuild Include="win32_handmade.cpp">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pushd ..
-build.bat
-popd</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\build\win32_handmade.exe</Outputs>
-    </CustomBuild>
+    <ClCompile Include="win32_handmade.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="handmade.h" />

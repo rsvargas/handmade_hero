@@ -56,8 +56,7 @@ struct sim_entity
 
     real32 DistanceLimit;
 
-    real32 Height;
-    real32 Width;
+    v3 Dim;
 
     uint32 FacingDirection;
     real32 tBob;
@@ -79,6 +78,8 @@ struct sim_entity_hash
 struct sim_region
 {
     world *World;
+    real32 MaxEntityRadius;
+    real32 MaxEntityVelocity;
 
     world_position Origin;
     rectangle3 Bounds;
