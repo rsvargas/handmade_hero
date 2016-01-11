@@ -145,14 +145,15 @@ internal world_position MapIntoChunkSpace(world* World, world_position BasePos, 
 }
 
 inline world_position ChunkPositionFromTilePosition(world* World,
-    int32 AbsTileX, int32 AbsTileY, int32 AbsTileZ)
+    int32 AbsTileX, int32 AbsTileY, int32 AbsTileZ, 
+    v3 AdditionalOffset = V3(0.0f, 0.0f, 0.0f) )
 {
     world_position BasePos = {};
 
     //
     v3 Offset = World->TileSideInMeters * V3((real32)AbsTileX, (real32)AbsTileY, (real32)AbsTileZ);
 
-    world_position Result = MapIntoChunkSpace(World, BasePos, Offset);
+    world_position Result = MapIntoChunkSpace(World, BasePos, AdditionalOffset + Offset);
 
     Assert(IsCanonical(World, Result.Offset_));
 
@@ -286,6 +287,6 @@ inline void ChangeEntityLocation(memory_arena* Arena, world* World,
     else
     {
         LowEntity->P = NullPosition();
-        AddFlag(&LowEntity->Sim, EntityFlag_Nonspatial);
+        AddFlags(&LowEntity->Sim, EntityFlag_Nonspatial);
     }
 }

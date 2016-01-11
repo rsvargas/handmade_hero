@@ -9,7 +9,7 @@ inline bool32 IsSet(sim_entity *Entity, uint32 Flag)
     return Result;
 }
 
-inline void AddFlag(sim_entity *Entity, uint32 Flag)
+inline void AddFlags(sim_entity *Entity, uint32 Flag)
 {
     Entity->Flags |= Flag;
 }
@@ -21,7 +21,7 @@ inline void ClearFlag(sim_entity *Entity, uint32 Flag)
 
 inline void MakeEntityNonSpatial(sim_entity *Entity)
 {
-    AddFlag(Entity, EntityFlag_Nonspatial);
+    AddFlags(Entity, EntityFlag_Nonspatial);
     Entity->P = InvalidP;
 }
 

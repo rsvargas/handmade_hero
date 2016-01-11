@@ -56,6 +56,9 @@
     <ClInclude Include="win32_handmade.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="handmade_entity.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\build.bat">

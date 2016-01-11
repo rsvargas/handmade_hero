@@ -261,12 +261,13 @@ internal add_low_entity_result AddLowEntity(game_state* GameState, entity_type T
 
 internal add_low_entity_result AddWall(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ)
 {
-    world_position P = ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
+    world_position P = ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ,
+        V3(0.0f, 0.0f, 0.5f*GameState->World->TileDepthInMeters));
     add_low_entity_result Entity = AddLowEntity(GameState, EntityType_Wall, P);
 
     Entity.Low->Sim.Dim.Y = GameState->World->TileSideInMeters;
     Entity.Low->Sim.Dim.X = Entity.Low->Sim.Dim.Y;
-    AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
+    AddFlags(&Entity.Low->Sim, EntityFlag_Collides);
 
     return Entity;
 }
@@ -278,8 +279,9 @@ internal add_low_entity_result AddStair(game_state *GameState, uint32 AbsTileX, 
 
     Entity.Low->Sim.Dim.Y = GameState->World->TileSideInMeters;
     Entity.Low->Sim.Dim.X = Entity.Low->Sim.Dim.Y;
-    Entity.Low->Sim.Dim.Z = GameState->World->TileDepthInMeters;
-    //AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
+    Entity.Low->Sim.Dim.Z = 1.2f*GameState->World->TileDepthInMeters;
+
+    //AddFlags(&Entity.Low->Sim, EntityFlag_Collides);
 
     return Entity;
 }
@@ -304,6 +306,7 @@ internal add_low_entity_result AddSword(game_state* GameState)
 
     Entity.Low->Sim.Dim.Y = 0.5f;// 1.4f;
     Entity.Low->Sim.Dim.X = 1.0f;// *Entity->Height;
+    AddFlags(&Entity.Low->Sim, EntityFlag_Moveable);
 
     return Entity;
 }
@@ -315,7 +318,7 @@ internal add_low_entity_result AddPlayer(game_state *GameState)
 
     Entity.Low->Sim.Dim.Y = 0.5f;// 1.4f;
     Entity.Low->Sim.Dim.X = 1.0f;// *Entity->Height;
-    AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
+    AddFlags(&Entity.Low->Sim, EntityFlag_Collides| EntityFlag_Moveable);
 
     InitHitPoints(Entity.Low, 3);
 
@@ -339,7 +342,7 @@ internal add_low_entity_result AddMonstar(game_state* GameState, int32 AbsTileX,
 
     Entity.Low->Sim.Dim.Y = 0.5f;// 1.4f;
     Entity.Low->Sim.Dim.X = 1.0f;// *Entity->Height;
-    AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
+    AddFlags(&Entity.Low->Sim, EntityFlag_Collides| EntityFlag_Moveable);
 
     InitHitPoints(Entity.Low, 3);
 
@@ -353,7 +356,7 @@ internal add_low_entity_result AddFamiliar(game_state* GameState, int32 AbsTileX
 
     Entity.Low->Sim.Dim.Y = 0.5f;// 1.4f;
     Entity.Low->Sim.Dim.X = 1.0f;// *Entity->Height;
-    AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
+    AddFlags(&Entity.Low->Sim, EntityFlag_Collides| EntityFlag_Moveable);
 
     return Entity;
 }
@@ -443,7 +446,7 @@ internal void ClearCollisionRulesFor(game_state *GameState, uint32 StorageIndex)
 
 }
 
-internal void AddCollisionRule(game_state *GameState, uint32 StorageIndexA, uint32 StorageIndexB, bool32 ShouldCollide )
+internal void AddCollisionRule(game_state *GameState, uint32 StorageIndexA, uint32 StorageIndexB, bool32 CanCollide )
 {
     if(StorageIndexA > StorageIndexB)
     {
@@ -486,7 +489,7 @@ internal void AddCollisionRule(game_state *GameState, uint32 StorageIndexA, uint
     {
         Found->StorageIndexA = StorageIndexA;
         Found->StorageIndexB = StorageIndexB;
-        Found->ShouldCollide = ShouldCollide;
+        Found->CanCollide = CanCollide;
     }
 }
 
@@ -888,7 +891,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                 case EntityType_Stairwell:
                 {
-                    PushBitmap(&PieceGroup, &GameState->Stairwell, V2(0, 0), 0, V2(37, 37));
+                    PushRect(&PieceGroup, V2(0, 0), 0, Entity->Dim.XY, V4(1, 1, 0, 1), 0.0f);
                 } break;
 
                 case EntityType_Sword:
@@ -963,7 +966,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 } break;
             }
 
-            if(!IsSet(Entity, EntityFlag_Nonspatial))
+            if(!IsSet(Entity, EntityFlag_Nonspatial) &&
+               IsSet(Entity, EntityFlag_Moveable) )
             {
                 MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
             }
