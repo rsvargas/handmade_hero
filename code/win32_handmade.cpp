@@ -514,6 +514,7 @@ internal void Win32DisplayBufferInWindow(const win32_offscreen_buffer& Buffer,
     HDC DeviceContext, int WindowWidth, int WindowHeigth)
 {
     //TODO: Centering / black bars
+#if 0
     if ((WindowWidth >= Buffer.Width*2) &
         (WindowHeigth >= Buffer.Height * 2))
     {
@@ -526,6 +527,7 @@ internal void Win32DisplayBufferInWindow(const win32_offscreen_buffer& Buffer,
             SRCCOPY);
     }
     else
+#endif
     {
         int OffsetX = 10;
         int OffsetY = 10;
@@ -981,8 +983,10 @@ internal void Win32DebugSyncDisplay(win32_offscreen_buffer* Backbuffer,
 }
 #endif
 
-int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE /*PrevInstance*/,
-    LPSTR /*CommandLine*/, int /*ShowCode*/)
+int CALLBACK WinMain(HINSTANCE Instance, 
+    HINSTANCE /*PrevInstance*/,
+    LPSTR /*CommandLine*/, 
+    int /*ShowCode*/)
 {
     win32_state Win32State = {};
     Win32GetEXEFileName(&Win32State);
@@ -1037,8 +1041,8 @@ int CALLBACK WinMain(HINSTANCE Instance, HINSTANCE /*PrevInstance*/,
             WS_OVERLAPPEDWINDOW | WS_VISIBLE,//DWORD dwStyle,
             CW_USEDEFAULT, //int X,
             CW_USEDEFAULT, //int Y,
-            CW_USEDEFAULT, //int nWidth,
-            CW_USEDEFAULT, //int nHeight,
+            1200, //CW_USEDEFAULT, //int nWidth,
+            800, //CW_USEDEFAULT, //int nHeight,
             0,//HWND hWndParent,
             0, //HMENU hMenu,
             Instance, //HINSTANCE hInstance,

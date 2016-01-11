@@ -104,6 +104,11 @@ struct controlled_hero
     real32 dZ;
 };
 
+enum pairwise_collision_rule_flag
+{
+    PairCollisionFlag_ShouldCollide = 0x1,
+    PairCollisionFlag_Temporary = 0x2,
+};
 struct pairwise_collision_rule
 {
     bool32 ShouldCollide;
@@ -112,6 +117,9 @@ struct pairwise_collision_rule
 
     pairwise_collision_rule *NextInHash;
 };
+struct game_state;
+internal void ClearCollisionRulesFor(game_state *GameState, uint32 StorageIndex);
+internal void AddCollisionRule(game_state *GameState, uint32 StorageIndexA, uint32 StorageIndexB, bool32 ShouldCollide);
 
 struct game_state
 {
@@ -132,6 +140,7 @@ struct game_state
 
     loaded_bitmap Tree;
     loaded_bitmap Sword;
+    loaded_bitmap Stairwell;
     real32 MetersToPixels;
 
     //TODO: Must be power of two
@@ -158,8 +167,6 @@ inline low_entity* GetLowEntity(game_state *GameState, uint32 Index)
     return Result;
 }
 
-internal void ClearCollisionRulesFor(game_state *GameState, uint32 StorageIndex);
-internal void AddCollisionRule(game_state *GameState, uint32 StorageIndexA, uint32 StorageIndexB, bool32 ShouldCollide );
 
 
 #endif// HANDMADE_H
