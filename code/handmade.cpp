@@ -274,12 +274,14 @@ internal add_low_entity_result AddWall(game_state *GameState, uint32 AbsTileX, u
 
 internal add_low_entity_result AddStair(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ)
 {
-    world_position P = ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
+    world_position P = ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ,
+                                                     V3(0.0f, 0.0f, 0.5f*GameState->World->TileDepthInMeters));
     add_low_entity_result Entity = AddLowEntity(GameState, EntityType_Stairwell, P);
 
-    Entity.Low->Sim.Dim.Y = GameState->World->TileSideInMeters;
-    Entity.Low->Sim.Dim.X = Entity.Low->Sim.Dim.Y;
+    Entity.Low->Sim.Dim.X = GameState->World->TileSideInMeters;
+    Entity.Low->Sim.Dim.Y = 2.0f*GameState->World->TileSideInMeters;
     Entity.Low->Sim.Dim.Z = 1.2f*GameState->World->TileDepthInMeters;
+    AddFlags(&Entity.Low->Sim, EntityFlag_Collides);
 
     //AddFlags(&Entity.Low->Sim, EntityFlag_Collides);
 
@@ -643,7 +645,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     }
                     else if (CreatedZDoor)
                     {
-                        if (TileX == 10 && TileY == 6)
+                        if (TileX == 10 && TileY == 5)
                         {
                             AddStair(GameState, AbsTileX, AbsTileY, DoorDown ? AbsTileZ - 1 : AbsTileZ);
                         }
@@ -704,9 +706,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             FamiliarIndex < 1;
             ++FamiliarIndex)
         {
-            int32 FamiliarOffsetX = (RandomNumberTable[RandomNumberIndex++] % 14) - 7;
-            int32 FamiliarOffsetY = (RandomNumberTable[RandomNumberIndex++] % 6) - 3;
-            AddFamiliar(GameState, CameraTileX + FamiliarOffsetX, CameraTileY + FamiliarOffsetY, CameraTileZ);
+            int32 FamiliarOffsetX = (RandomNumberTable[RandomNumberIndex++] % 10) - 7;
+            int32 FamiliarOffsetY = (RandomNumberTable[RandomNumberIndex++] % 10) - 3;
+            if ((FamiliarOffsetX != 0) ||
+                (FamiliarOffsetY != 0))
+            {
+                AddFamiliar(GameState, CameraTileX + FamiliarOffsetX, CameraTileY + FamiliarOffsetY, 
+                    CameraTileZ);
+            }
         }
 
 
@@ -972,8 +979,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
             }
 
-            real32 EntityGroundPointX = ScreenCenterX + MetersToPixels * Entity->P.X;
-            real32 EntityGroundPointY = ScreenCenterY - MetersToPixels * Entity->P.Y;
+            real32 ZFudge = (1.0f + 0.1f*Entity->P.Z);
+
+            real32 EntityGroundPointX = ScreenCenterX + MetersToPixels * ZFudge * Entity->P.X;
+            real32 EntityGroundPointY = ScreenCenterY - MetersToPixels * ZFudge * Entity->P.Y;
             real32 EntityZ = -MetersToPixels * Entity->P.Z;
     #if 0
             v2 PlayerLeftTop = { PlayerGroundPointX - 0.5f*MetersToPixels*LowEntity->Width,

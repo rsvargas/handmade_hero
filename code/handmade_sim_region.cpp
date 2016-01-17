@@ -298,12 +298,6 @@ internal bool32 CanCollide(game_state *GameState, sim_entity *A, sim_entity *B)
             Result = true;
         }
 
-        if ((A->Type == EntityType_Stairwell) ||
-            (B->Type == EntityType_Stairwell))
-        {
-            Result = false;
-        }
-
         //TODO: BETTER HASH FUNCTION
         uint32 HashBucket = A->StorageIndex & (ArrayCount(GameState->CollisionRuleHash) - 1);
         for (pairwise_collision_rule* Rule = GameState->CollisionRuleHash[HashBucket];
@@ -352,12 +346,6 @@ internal bool32 HandleCollision(game_state *GameState, sim_entity *A, sim_entity
         }
     }
 
-    if ((A->Type == EntityType_Hero) &&
-        (B->Type == EntityType_Stairwell))
-    {
-        StopsOnCollision = false;
-    }
-
     //Entity->ChunkZ += HitLow->Sim.dAbsTileZ;
 
     return StopsOnCollision;
@@ -389,11 +377,33 @@ internal void HandleOverlap(game_state* GameState, sim_entity* Mover, sim_entity
     }
 }
 
+internal bool32 SpeculativeCollide(sim_entity* Mover, sim_entity* Region)
+{
+    bool32 Result = true;
+    if (Region->Type == EntityType_Stairwell)
+    {
+        rectangle3 RegionRect = RectCenterDim(Region->P, Region->Dim);
+        v3 Bary = Clamp01(GetBarycentric(RegionRect, Mover->P));
+
+        real32 Ground = Lerp(RegionRect.Min.Z, Bary.Y, RegionRect.Max.Z);
+        real32 StepHeight = 0.2f;
+        real32 Difference = AbsoluteValue(Mover->P.Z - Ground);
+        Result = ((Difference > StepHeight) ||
+                    ((Bary.Y > 0.1f) && (Bary.Y < 0.9f)));
+    }
+    return Result;
+}
+
 internal void MoveEntity(game_state *GameState, sim_region * SimRegion, sim_entity *Entity,
     real32 dt, move_spec *MoveSpec,  v3 ddP)
 {
     Assert(!IsSet(Entity, EntityFlag_Nonspatial));
     world *World = SimRegion->World;
+
+    if (Entity->Type == EntityType_Hero)
+    {
+        int BreakHere = 5;
+    }
 
     if(MoveSpec->UnitMaxAccelVector)
     {
@@ -407,7 +417,10 @@ internal void MoveEntity(game_state *GameState, sim_region * SimRegion, sim_enti
     ddP *= MoveSpec->Speed;
 
     ddP += -MoveSpec->Drag* Entity->dP;
-    ddP += V3(0, 0, -9.8f);
+    if(!IsSet(Entity, EntityFlag_ZSupported))
+    {
+        ddP += V3(0, 0, -9.8f); //NOTE: Gravity!
+    }
 
     v3 OldPlayerP = Entity->P;
     //newPos = 1/2*accel*dTime^2 + vel*dTime + pos
@@ -466,29 +479,43 @@ internal void MoveEntity(game_state *GameState, sim_region * SimRegion, sim_enti
 
                         v3 Rel = Entity->P - TestEntity->P;
 
+                        real32 tMinTest = tMin;
+                        v3 TestWallNormal = {};
+                        bool32 HitThis = false;
                         if (TestWall(MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y,
-                            &tMin, MinCorner.Y, MaxCorner.Y))
+                            &tMinTest, MinCorner.Y, MaxCorner.Y))
                         {
-                            WallNormal = V3(-1, 0, 0);
-                            HitEntity = TestEntity;
+                            TestWallNormal = V3(-1, 0, 0);
+                            HitThis = true;
                         }
                         if(TestWall(MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y,
-                            &tMin, MinCorner.Y, MaxCorner.Y))
+                            &tMinTest, MinCorner.Y, MaxCorner.Y))
                         {
-                            WallNormal = V3(1, 0, 0);
-                            HitEntity = TestEntity;
+                            TestWallNormal = V3(1, 0, 0);
+                            HitThis = true;
                         }
                         if(TestWall(MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X,
-                            &tMin, MinCorner.X, MaxCorner.X))
+                            &tMinTest, MinCorner.X, MaxCorner.X))
                         {
-                            WallNormal = V3(0, -1, 0);
-                            HitEntity = TestEntity;
+                            TestWallNormal = V3(0, -1, 0);
+                            HitThis = true;
                         }
                         if(TestWall(MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X,
-                            &tMin, MinCorner.X, MaxCorner.X))
+                            &tMinTest, MinCorner.X, MaxCorner.X))
                         {
-                            WallNormal = V3(0, 1, 0);
-                            HitEntity = TestEntity;
+                            TestWallNormal = V3(0, 1, 0);
+                            HitThis = true;
+                        }
+
+                        if (HitThis)
+                        {
+                            v3 TestP = Entity->P + tMinTest*PlayerDelta;
+                            if (SpeculativeCollide(Entity, TestEntity))
+                            {
+                                tMin = tMinTest;
+                                WallNormal = TestWallNormal;
+                                HitEntity = TestEntity;
+                            }
                         }
                     }
                 }
@@ -534,10 +561,17 @@ internal void MoveEntity(game_state *GameState, sim_region * SimRegion, sim_enti
         }
     }
 
-    if (Entity->P.Z < Ground)
+    if ((Entity->P.Z <= Ground) ||
+        (IsSet(Entity, EntityFlag_ZSupported) &&
+         (Entity->dP.Z == 0.0f)))
     {
         Entity->P.Z = Ground;
         Entity->dP.Z = 0;
+        AddFlags(Entity, EntityFlag_ZSupported);
+    }
+    else
+    {
+        ClearFlags(Entity, EntityFlag_ZSupported);
     }
 
     if(Entity->DistanceLimit != 0.0f)

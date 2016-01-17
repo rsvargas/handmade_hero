@@ -1059,7 +1059,7 @@ int CALLBACK WinMain(HINSTANCE Instance,
             {
                 MonitorRefreshHz = Win32RefreshRate;
             }
-            real32 GameUpdateHz = ((real32)MonitorRefreshHz/2.0f);
+            real32 GameUpdateHz = 30;// ((real32)MonitorRefreshHz / 2.0f);
             real32 TargetSecondsPerFrame = (1.0f / (GameUpdateHz));
 
             win32_sound_output SoundOutput = {};
