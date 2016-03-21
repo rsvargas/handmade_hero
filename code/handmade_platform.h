@@ -26,7 +26,7 @@ extern "C" {
 #define COMPILER_MSVC 1
 #else
 #undef COMPILER_LLVM
-#defime COMPILER_LLVM 1
+#define COMPILER_LLVM 1
 #endif
 #endif
 
@@ -43,12 +43,12 @@ typedef int32_t int32;
 typedef int64_t int64;
 typedef int32 bool32;
 
-typedef size_t memory_index;
-
 typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
+
+typedef size_t memory_index;
 
 typedef float real32;
 typedef double real64;
@@ -111,16 +111,9 @@ typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 
 /*
 //NOTE: Services that the game provides to the platform layer
-(this may extando in the future - sound on separare thread, etc. )
+(this may expand in the future - sound on separate thread, etc. )
 */
 // Four Things - timing, controller/keyboard input, bitmap buffer to use, sound buffer to use
-
-typedef struct game_sound_output_buffer
-{
-    int SamplesPerSecond;
-    int SampleCount;
-    int16 *Samples;
-} game_sound_output_buffer;
 
 // TODO: I the future, rendering _specifically_ will become a three-tiered abstaction!!
 typedef struct game_offscreen_buffer
@@ -133,6 +126,13 @@ typedef struct game_offscreen_buffer
     int BytesPerPixel;
     int MemorySize;
 } game_offscreen_buffer;
+
+typedef struct game_sound_output_buffer
+{
+    int SamplesPerSecond;
+    int SampleCount;
+    int16 *Samples;
+} game_sound_output_buffer;
 
 typedef struct game_button_state
 {
@@ -206,10 +206,10 @@ typedef struct game_memory
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 
 //NOTE: At the moment, this has to be a very fast function it cannot be more than a millisecond or so.
-#define GAME_GET_SOUND_SAMPLES(name) void name(thread_context *Thread, game_memory* Memory, game_sound_output_buffer* SoundOutput)
+#define GAME_GET_SOUND_SAMPLES(name) void name(thread_context *Thread, game_memory* Memory, game_sound_output_buffer* SoundBuffer)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 
-inline game_controller_input *GetController(game_input *Input, int ControllerIndex)
+inline game_controller_input *GetController(game_input *Input, int unsigned ControllerIndex)
 {
     Assert(ControllerIndex < ArrayCount(Input->Controllers));
     return &Input->Controllers[ControllerIndex];

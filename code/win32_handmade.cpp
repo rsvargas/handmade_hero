@@ -23,11 +23,11 @@
 
 #include "handmade_platform.h"
 
-#include <Windows.h>
-#include <Xinput.h>
-#include <dsound.h>
+#include <windows.h>
 #include <stdio.h>
 #include <malloc.h>
+#include <xinput.h>
+#include <dsound.h>
 
 #include "win32_handmade.h"
 
@@ -38,7 +38,7 @@ global_variable win32_offscreen_buffer GlobalBackbuffer;
 global_variable LPDIRECTSOUNDBUFFER GlobalSecondaryBuffer;
 global_variable int64 GlobalPerfCountFrequency;
 global_variable bool32 DEBUGGlobalShowCursor;
-global_variable WINDOWPLACEMENT GlobalWindoPosition = { sizeof(GlobalWindoPosition) };
+global_variable WINDOWPLACEMENT GlobalWindowPosition = { sizeof(GlobalWindowPosition) };
 
 internal void ToggleFullscreen(HWND Window)
 {
@@ -62,7 +62,7 @@ internal void ToggleFullscreen(HWND Window)
     else
     {
         SetWindowLong(Window, GWL_STYLE, Style | WS_OVERLAPPEDWINDOW);
-        SetWindowPlacement(Window, &GlobalWindoPosition);
+        SetWindowPlacement(Window, &GlobalWindowPosition);
         SetWindowPos(Window, 0, 0, 0, 0, 0,
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
             SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
@@ -91,7 +91,7 @@ global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define XInputGetState XInputGetState_
 #define XInputSetState XInputSetState_
 
-#define DIRECT_SOUND_CREATE(name) HRESULT name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
+#define DIRECT_SOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
 typedef DIRECT_SOUND_CREATE(direct_sound_create);
 
 
@@ -101,26 +101,17 @@ internal void CatStrings(
     size_t SourceBCount, char* SourceB,
     size_t DestCount, char*Dest)
 {
-    Assert(SourceACount + SourceBCount < DestCount)
-        for (int Index = 0; Index < SourceACount; ++Index)
-        {
-            *Dest++ = *SourceA++;
-        }
+    Assert(SourceACount + SourceBCount < DestCount);
+    for (int Index = 0; Index < SourceACount; ++Index)
+    {
+        *Dest++ = *SourceA++;
+    }
+
     for (int Index = 0; Index < SourceBCount; ++Index)
     {
         *Dest++ = *SourceB++;
     }
     *Dest++ = 0;
-}
-
-internal int StringLength(char* String)
-{
-    int Count = 0;
-    while (*String++)
-    {
-        ++Count;
-    }
-    return Count;
 }
 
 internal void Win32GetEXEFileName(win32_state *State)
@@ -134,6 +125,16 @@ internal void Win32GetEXEFileName(win32_state *State)
             State->OnePastLastEXEFileNameSlash = Scan + 1;
         }
     }
+
+internal int StringLength(char* String)
+{
+    int Count = 0;
+    while (*String++)
+    {
+        ++Count;
+    }
+    return Count;
+}
 
 }
 
@@ -149,33 +150,10 @@ internal void Win32BuildEXEPathFileName(win32_state *State, char* FileName,
 
 DEBUG_PLATFORM_FREE_FILE_MEMORY(DEBUGPlatformFreeFileMemory)
 {
-    VirtualFree(Memory, 0, MEM_RELEASE);
-}
-
-DEBUG_PLATFORM_WRITE_ENTIRE_FILE(DEBUGPlatformWriteEntireFile)
-{
-    bool32 Result = 0;
-
-    HANDLE FileHandle = CreateFileA(Filename,
-        GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
-    if (FileHandle != INVALID_HANDLE_VALUE)
+    if(Memory)
     {
-        DWORD BytesWritten;
-        if (WriteFile(FileHandle, Memory, MemorySize, &BytesWritten, 0))
-        {
-            Result = (BytesWritten == MemorySize);
-        }
-        else
-        {
-            //TODO: logging
-        }
-        CloseHandle(FileHandle);
+        VirtualFree(Memory, 0, MEM_RELEASE);
     }
-    else
-    {
-        //TODO Logging
-    }
-    return Result;
 }
 
 DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUGPlatformReadEntireFile)
@@ -223,11 +201,39 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUGPlatformReadEntireFile)
     return Result;
 }
 
+DEBUG_PLATFORM_WRITE_ENTIRE_FILE(DEBUGPlatformWriteEntireFile)
+{
+    bool32 Result = 0;
+
+    HANDLE FileHandle = CreateFileA(Filename,
+        GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
+    if (FileHandle != INVALID_HANDLE_VALUE)
+    {
+        DWORD BytesWritten;
+        if (WriteFile(FileHandle, Memory, MemorySize, &BytesWritten, 0))
+        {
+            Result = (BytesWritten == MemorySize);
+        }
+        else
+        {
+            //TODO: logging
+        }
+        CloseHandle(FileHandle);
+    }
+    else
+    {
+        //TODO Logging
+    }
+    return Result;
+}
+
+
+
 inline FILETIME Win32GetLastWriteTime(const char* Filename)
 {
     FILETIME Result = {};
     WIN32_FILE_ATTRIBUTE_DATA Data;
-    if (GetFileAttributesExA(Filename, GetFileExInfoStandard, &Data))
+    if (GetFileAttributesEx(Filename, GetFileExInfoStandard, &Data))
     {
         Result = Data.ftLastWriteTime;
     }
@@ -239,16 +245,17 @@ internal win32_game_code Win32LoadGameCode(char* SourceDLLName, char* TempDLLNam
     win32_game_code Result = {};
 
     WIN32_FILE_ATTRIBUTE_DATA Ignored;
-    if (!GetFileAttributesExA(LockFileName, GetFileExInfoStandard, &Ignored))
+    if (!GetFileAttributesEx(LockFileName, GetFileExInfoStandard, &Ignored))
     {
         Result.DLLLastWriteTime = Win32GetLastWriteTime(SourceDLLName);
 
-        CopyFileA(SourceDLLName, TempDLLName, FALSE);
+        CopyFile(SourceDLLName, TempDLLName, FALSE);
         Result.GameCodeDLL = LoadLibraryA(TempDLLName);
         if (Result.GameCodeDLL)
         {
             Result.UpdateAndRender = (game_update_and_render*)
                 GetProcAddress(Result.GameCodeDLL, "GameUpdateAndRender");
+
             Result.GetSoundSamples = (game_get_sound_samples*)
                 GetProcAddress(Result.GameCodeDLL, "GameGetSoundSamples");
 
@@ -268,6 +275,7 @@ internal void Win32UnloadGameCode(win32_game_code* GameCode)
     if (GameCode->GameCodeDLL)
     {
         FreeLibrary(GameCode->GameCodeDLL);
+        GameCode->GameCodeDLL = 0;
     }
 
     GameCode->IsValid = false;
@@ -279,7 +287,7 @@ internal void Win32UnloadGameCode(win32_game_code* GameCode)
 internal void Win32LoadXInput()
 {
     //TODO: test in several OSs
-    HMODULE XInputLibrary = LoadLibraryA("xinput1_3.dll");
+    HMODULE XInputLibrary = LoadLibraryA("xinput1_4.dll");
     if (!XInputLibrary)
     {
         XInputLibrary = LoadLibraryA("xinput9_1_0.dll");
@@ -507,7 +515,7 @@ internal void Win32ResizeDIBSection(win32_offscreen_buffer& Buffer, int Width, i
 
     Buffer.Pitch = Width * BytesPerPixel;
 
-    //TODO: probably celar this to black
+    //TODO: probably clear this to black
 }
 
 internal void Win32DisplayBufferInWindow(const win32_offscreen_buffer& Buffer,
@@ -556,11 +564,6 @@ LRESULT CALLBACK MainWindowCallback(HWND Window, UINT Message,
 
     switch (Message)
     {
-    case WM_SIZE:
-    {
-        //OutputDebugStringA("WM_SIZE\n");
-    } break;
-
     case WM_CLOSE:
     {
         //TODO: handle this witha a message to the user?
@@ -635,7 +638,7 @@ internal void Win32GetInputFileLocation(win32_state* State, bool32 InputStream, 
     Win32BuildEXEPathFileName(State, Temp, DestCount, Dest);
 }
 
-internal win32_replay_buffer* Win32GetReplaybuffer(win32_state *State, unsigned int Index)
+internal win32_replay_buffer* Win32GetReplayBuffer(win32_state *State, unsigned int Index)
 {
     Assert(Index > 0);
     Assert(Index < ArrayCount(State->ReplayBuffers));
@@ -645,7 +648,7 @@ internal win32_replay_buffer* Win32GetReplaybuffer(win32_state *State, unsigned 
 
 internal void Win32BeginRecordingInput(win32_state *State, int InputRecordingIndex)
 {
-    win32_replay_buffer *ReplayBuffer = Win32GetReplaybuffer(State, InputRecordingIndex);
+    win32_replay_buffer *ReplayBuffer = Win32GetReplayBuffer(State, InputRecordingIndex);
     if (ReplayBuffer->MemoryBlock)
     {
         State->InputRecordingIndex = InputRecordingIndex;
@@ -676,7 +679,7 @@ internal void Win32EndRecordingInput(win32_state *State)
 
 internal void Win32BeginInputPlayBack(win32_state *State, int InputPlayingIndex)
 {
-    win32_replay_buffer *ReplayBuffer = Win32GetReplaybuffer(State, InputPlayingIndex);
+    win32_replay_buffer *ReplayBuffer = Win32GetReplayBuffer(State, InputPlayingIndex);
     if (ReplayBuffer->MemoryBlock)
     {
         State->InputPlayingIndex = InputPlayingIndex;
@@ -938,7 +941,7 @@ internal void Win32DebugSyncDisplay(win32_offscreen_buffer* Backbuffer,
 
         DWORD PlayColor = 0xFFFFFFFF;
         DWORD WriteColor = 0xFFFF0000;
-        DWORD ExpectedFlipColor = 0xFF00FF00;
+        DWORD ExpectedFlipColor = 0xFFFFFF00;
         DWORD PlayWindowColor = 0xFFFF00FF;
 
         int Top = PadY;
@@ -1014,7 +1017,7 @@ int CALLBACK WinMain(HINSTANCE Instance,
     OutputDebugStringA(Msg);
 
     UINT DesiredSchedulerMS = 1;
-    bool SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);
+    bool32 SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);
 
     Win32LoadXInput();
 

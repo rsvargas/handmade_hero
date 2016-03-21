@@ -24,7 +24,7 @@ inline bool32 IsCanonical(real32 ChunkDim, real32 TileRel)
 {
     real32 Epsilon = 0.0001f;
     bool32 Result = ((TileRel >= -(0.5f*ChunkDim + Epsilon)) &&
-                     (TileRel <= (0.5f*ChunkDim +  Epsilon)));
+                     (TileRel <= (0.5f*ChunkDim + Epsilon)));
 
     return Result;
 }
@@ -52,20 +52,18 @@ inline bool32 AreInSameChunk(world* World, world_position* A, world_position* B)
 inline world_chunk* GetWorldChunk(world * World, int32 ChunkX, int32 ChunkY,
     int32 ChunkZ, memory_arena* Arena = 0)
 {
-    world_chunk *Chunk = 0;
-
     Assert(ChunkX > -TILE_CHUNK_SAFE_MARGIN);
     Assert(ChunkY > -TILE_CHUNK_SAFE_MARGIN);
     Assert(ChunkZ > -TILE_CHUNK_SAFE_MARGIN);
     Assert(ChunkX < TILE_CHUNK_SAFE_MARGIN);
-    Assert(ChunkZ < TILE_CHUNK_SAFE_MARGIN);
+    Assert(ChunkY < TILE_CHUNK_SAFE_MARGIN);
     Assert(ChunkZ < TILE_CHUNK_SAFE_MARGIN);
 
     uint32 HashValue = 19*ChunkX + 7*ChunkY + 3*ChunkZ;
     uint32 HashSlot = HashValue & (ArrayCount(World->ChunkHash) - 1);
     Assert(HashSlot < ArrayCount(World->ChunkHash));
 
-    Chunk = World->ChunkHash + HashSlot;
+    world_chunk *Chunk = World->ChunkHash + HashSlot;
     do
     {
         if ((ChunkX == Chunk->ChunkX) &&
@@ -91,6 +89,7 @@ inline world_chunk* GetWorldChunk(world * World, int32 ChunkX, int32 ChunkY,
             Chunk->NextInHash = 0;
             break;
         }
+
         Chunk = Chunk->NextInHash;
     }
     while (Chunk);
