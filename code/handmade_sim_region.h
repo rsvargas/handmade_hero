@@ -11,6 +11,8 @@ enum entity_type
 {
     EntityType_Null,
 
+    EntityType_Space,
+
     EntityType_Hero,
     EntityType_Wall,
     EntityType_Familiar,
@@ -38,7 +40,8 @@ enum sim_entity_flags
     EntityFlag_Collides =   (1 << 0),
     EntityFlag_Nonspatial = (1 << 1),
     EntityFlag_Moveable =   (1 << 2),
-    EntityFlag_ZSupported = (1 << 4),
+    EntityFlag_ZSupported = (1 << 3),
+    EntityFlag_Traversable = (1 << 4),
 
     EntityFlag_Simming = (1 << 30),
 };

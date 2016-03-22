@@ -48,7 +48,7 @@ internal void ToggleFullscreen(HWND Window)
     if (Style & WS_OVERLAPPEDWINDOW)
     {
         MONITORINFO MonitorInfo = { sizeof(MonitorInfo) };
-        if (GetWindowPlacement(Window, &GlobalWindoPosition) &&
+        if (GetWindowPlacement(Window, &GlobalWindowPosition) &&
             GetMonitorInfo(MonitorFromWindow(Window, MONITOR_DEFAULTTOPRIMARY), &MonitorInfo))
         {
             SetWindowLong(Window, GWL_STYLE, Style & ~WS_OVERLAPPEDWINDOW);
@@ -125,6 +125,7 @@ internal void Win32GetEXEFileName(win32_state *State)
             State->OnePastLastEXEFileNameSlash = Scan + 1;
         }
     }
+}
 
 internal int StringLength(char* String)
 {
@@ -134,8 +135,6 @@ internal int StringLength(char* String)
         ++Count;
     }
     return Count;
-}
-
 }
 
 internal void Win32BuildEXEPathFileName(win32_state *State, char* FileName,
