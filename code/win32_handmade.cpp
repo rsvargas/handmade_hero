@@ -571,7 +571,7 @@ LRESULT CALLBACK MainWindowCallback(HWND Window, UINT Message,
 
     case WM_SETCURSOR:
     {
-        if (DEBUGGlobalShowCursor)
+        if(DEBUGGlobalShowCursor)
         {
             Result = DefWindowProcA(Window, Message, WParam, LParam);
         }
@@ -1104,7 +1104,7 @@ int CALLBACK WinMain(HINSTANCE Instance,
 
             game_memory GameMemory = {};
             GameMemory.PermanentStorageSize = MEGABYTES(256);
-            GameMemory.TransientStorageSize = MEGABYTES(100); //My HDD cant write a Gb of data without freezing
+            GameMemory.TransientStorageSize = GIGABYTES(1); //My HDD cant write a Gb of data without freezing
             GameMemory.DEBUGPlatformFreeFileMemory = DEBUGPlatformFreeFileMemory;
             GameMemory.DEBUGPlatformReadEntireFile = DEBUGPlatformReadEntireFile;
             GameMemory.DEBUGPlatformWriteEntireFile = DEBUGPlatformWriteEntireFile;
@@ -1113,6 +1113,9 @@ int CALLBACK WinMain(HINSTANCE Instance,
                 GameMemory.TransientStorageSize;
             Win32State.GameMemoryBlock = VirtualAlloc(BaseAddress, (size_t)Win32State.TotalSize,
                 MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+            GameMemory.PermanentStorage = Win32State.GameMemoryBlock;
+            GameMemory.TransientStorage = ((uint8*)GameMemory.PermanentStorage) + 
+                GameMemory.PermanentStorageSize;
 
             for (int ReplayIndex = 0; ReplayIndex < ArrayCount(Win32State.ReplayBuffers); ++ReplayIndex)
             {
@@ -1143,10 +1146,6 @@ int CALLBACK WinMain(HINSTANCE Instance,
             }
 
 
-            GameMemory.PermanentStorage = Win32State.GameMemoryBlock;
-
-            GameMemory.TransientStorage = ((uint8*)GameMemory.PermanentStorage) + 
-                GameMemory.PermanentStorageSize;
 
             if (Samples && GameMemory.PermanentStorage && GameMemory.TransientStorage)
             {

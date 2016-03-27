@@ -641,7 +641,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         bool32 DoorUp = false;
         bool32 DoorDown = false;
 
-        for (uint32 ScreenIndex = 0; ScreenIndex < 200; ++ScreenIndex)
+        for (uint32 ScreenIndex = 0; ScreenIndex < 2000; ++ScreenIndex)
         {
             Assert(RandomNumberIndex < ArrayCount(RandomNumberTable));
 
@@ -715,7 +715,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                     if (ShouldBeDoor)
                     {
-                        AddWall(GameState, AbsTileX, AbsTileY, AbsTileZ);
+                        if(ScreenIndex == 0)
+                            AddWall(GameState, AbsTileX, AbsTileY, AbsTileZ);
                     }
                     else if (CreatedZDoor)
                     {
@@ -997,7 +998,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 {
                     sim_entity *ClosestHero = 0;
                     real32 ClosestHeroDSq = Square(10.0f); //NOTE: Ten meter maximum Search
-
+#if 0
                     sim_entity *TestEntity = SimRegion->Entities;
                     for (uint32 TestEntityIndex = 0;
                         TestEntityIndex < SimRegion->EntityCount;
@@ -1013,6 +1014,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                             }
                         }
                     }
+#endif
 
                     if (ClosestHero && ClosestHeroDSq > Square(3.0f) )
                     {
