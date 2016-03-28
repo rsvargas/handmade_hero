@@ -539,6 +539,55 @@ sim_entity_collision_volume_group * MakeNullCollision(game_state *GameState)
 
 }
 
+internal void DrawTestGround(game_state *GameState, game_offscreen_buffer *Buffer)
+{
+    uint32 RandomNumberIndex = 0;
+
+    v2 Center = 0.5f * V2i(Buffer->Width, Buffer->Height);
+    for(uint32 GrassIndex = 0;
+    GrassIndex < 100;
+        ++GrassIndex)
+    {
+        Assert(RandomNumberIndex < ArrayCount(RandomNumberTable));
+
+        loaded_bitmap *Stamp;
+        if(RandomNumberTable[RandomNumberIndex++]%2)
+        {
+            Stamp = GameState->Grass + (RandomNumberTable[RandomNumberIndex++]%ArrayCount(GameState->Grass));
+        }
+        else
+        {
+            Stamp = GameState->Ground + (RandomNumberTable[RandomNumberIndex++]%ArrayCount(GameState->Ground));
+        }
+
+        real32 Radius = 5.0f;
+        v2 BitmapCenter = 0.5f*V2i(Stamp->Width, Stamp->Height);
+        v2 Offset ={2*(real32)RandomNumberTable[RandomNumberIndex++]/(real32)MaxRandomNumber - 1,
+               2*(real32)RandomNumberTable[RandomNumberIndex++]/(real32)MaxRandomNumber - 1};
+
+        v2 P = Center + GameState->MetersToPixels * Radius * Offset - BitmapCenter;
+
+        DrawBitmap(Buffer, Stamp, P.X, P.Y);
+    }
+    for(uint32 GrassIndex = 0;
+    GrassIndex < 100;
+        ++GrassIndex)
+    {
+        Assert(RandomNumberIndex < ArrayCount(RandomNumberTable));
+
+        loaded_bitmap *Stamp = GameState->Tuft+ (RandomNumberTable[RandomNumberIndex++]%ArrayCount(GameState->Tuft));
+
+        real32 Radius = 5.0f;
+        v2 BitmapCenter = 0.5f*V2i(Stamp->Width, Stamp->Height);
+        v2 Offset ={2*(real32)RandomNumberTable[RandomNumberIndex++]/(real32)MaxRandomNumber - 1,
+            2*(real32)RandomNumberTable[RandomNumberIndex++]/(real32)MaxRandomNumber - 1};
+
+        v2 P = Center + GameState->MetersToPixels * Radius * Offset - BitmapCenter;
+
+        DrawBitmap(Buffer, Stamp, P.X, P.Y);
+    }
+}
+
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
@@ -583,6 +632,27 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             TilesPerHeight * GameState->World->TileSideInMeters,
             0.9f*GameState->World->TileDepthInMeters);
 
+
+        GameState->Grass[0] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/grass00.bmp");
+        GameState->Grass[1] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/grass01.bmp");
+
+        GameState->Tuft[0] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/tuft00.bmp");
+        GameState->Tuft[1] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/tuft01.bmp");
+        GameState->Tuft[2] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/tuft02.bmp");
+
+        GameState->Ground[0] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/ground00.bmp");
+        GameState->Ground[1] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/ground01.bmp");
+        GameState->Ground[2] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/ground02.bmp");
+        GameState->Ground[3] =
+            DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "test2/ground03.bmp");
 
 
         GameState->Backdrop =
@@ -896,6 +966,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 #else
     DrawBitmap(Buffer, &GameState->Backdrop, 0, 0);
 #endif
+
+    DrawTestGround(GameState, Buffer);
 
     real32 ScreenCenterX = 0.5f*(real32)Buffer->Width;
     real32 ScreenCenterY = 0.5f*(real32)Buffer->Height;
