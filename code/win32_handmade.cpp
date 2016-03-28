@@ -1317,7 +1317,6 @@ int CALLBACK WinMain(HINSTANCE Instance,
                         Buffer.Width = GlobalBackbuffer.Width;
                         Buffer.Height = GlobalBackbuffer.Height;
                         Buffer.Pitch = GlobalBackbuffer.Pitch;
-                        Buffer.BytesPerPixel = GlobalBackbuffer.BytesPerPixel;
                         Buffer.MemorySize = GlobalBackbuffer.BitmapMemorySize;
 
 
