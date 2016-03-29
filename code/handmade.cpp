@@ -83,7 +83,7 @@ internal void DrawRectangle(loaded_bitmap *Buffer,
 }
 
 internal void DrawBitmap(loaded_bitmap *Buffer, loaded_bitmap* Bitmap,
-    real32 RealX, real32 RealY, real32 ShadowAlpha= 1.0f)
+    real32 RealX, real32 RealY, real32 CAlpha= 1.0f)
 {
     int32 MinX = RoundReal32ToInt32(RealX);
     int32 MinY = RoundReal32ToInt32(RealY);
@@ -114,7 +114,6 @@ internal void DrawBitmap(loaded_bitmap *Buffer, loaded_bitmap* Bitmap,
         MaxY = Buffer->Height;
     }
 
-    //(Bitmap->Pitch*(Bitmap->Height - 1));
     uint8* SourceRow = (uint8*)Bitmap->Memory+ SourceOffsetY*Bitmap->Pitch + BITMAP_BYTES_PER_PIXEL*SourceOffsetX;
     uint8* DestRow = (((uint8*)Buffer->Memory) +
         MinX * BITMAP_BYTES_PER_PIXEL +
@@ -125,21 +124,25 @@ internal void DrawBitmap(loaded_bitmap *Buffer, loaded_bitmap* Bitmap,
         uint32 *Source = (uint32*)SourceRow;
         for (int X = MinX; X < MaxX; ++X)
         {
-            real32 SA = (real32)((*Source >> 24) & 0xFF) / 255.0f;
-            SA *= ShadowAlpha;
-            real32 SR = (real32)((*Source >> 16) & 0xFF);
-            real32 SG = (real32)((*Source >> 8) & 0xFF);
-            real32 SB = (real32)((*Source >> 0) & 0xFF);
+
+            real32 SA = CAlpha * (real32)((*Source >> 24) & 0xFF);
+            real32 SR = CAlpha * (real32)((*Source >> 16) & 0xFF);
+            real32 SG = CAlpha * (real32)((*Source >> 8) & 0xFF);
+            real32 SB = CAlpha * (real32)((*Source >> 0) & 0xFF);
+            real32 RSA = (SA / 255.0f) * CAlpha;
+
 
             real32 DA = (real32)((*Dest >> 24) & 0xFF);
             real32 DR = (real32)((*Dest >> 16) & 0xFF);
-            real32 DG = (real32)((*Dest >> 8) & 0xFF);
+            real32 DG  = (real32)((*Dest >> 8) & 0xFF);
             real32 DB = (real32)((*Dest >> 0) & 0xFF);
+            real32 RDA = (DA/255.0f);
 
-            real32 A = MAXIMUM(DA, 255.0f*SA);
-            real32 R = (1.0f - SA)*DR + SA*SR;
-            real32 G = (1.0f - SA)*DG + SA*SG;
-            real32 B = (1.0f - SA)*DB + SA*SB;
+            real32 InvRSA = (1.0f-RSA);
+            real32 A = 255.0f*(RDA + RSA - RDA*RSA);//InvRSA*DA + SA;// MAXIMUM(DA, 255.0f*SA);
+            real32 R = InvRSA*DR + SR;
+            real32 G = InvRSA*DG + SG;
+            real32 B = InvRSA*DB + SB;
 
             *Dest = (((uint32)(A + 0.5f) << 24) |
                      ((uint32)(R + 0.5f) << 16) |
@@ -213,10 +216,10 @@ internal loaded_bitmap DEBUGLoadBMP(thread_context* Thread, debug_platform_read_
         Assert(BlueScan.Found);
         Assert(AlphaScan.Found);
 
-        int32 RedShift = 16 - (int32)RedScan.Index;
-        int32 GreenShift = 8 - (int32)GreenScan.Index;
-        int32 BlueShift = 0 - (int32)BlueScan.Index;
-        int32 AlphaShift = 24 - (int32)AlphaScan.Index;
+        int32 RedShiftDown = (int32)RedScan.Index;
+        int32 GreenShiftDown = (int32)GreenScan.Index;
+        int32 BlueShiftDown = (int32)BlueScan.Index;
+        int32 AlphaShiftDown = (int32)AlphaScan.Index;
 
 
         uint32* SourceDest = Pixels;
@@ -225,10 +228,24 @@ internal loaded_bitmap DEBUGLoadBMP(thread_context* Thread, debug_platform_read_
             for (int32 X = 0; X < Header->Width; ++X)
             {
                 uint32 C = *SourceDest;
-                *SourceDest = (RotateLeft(C & RedMask, RedShift) |
-                    RotateLeft(C & GreenMask, GreenShift) |
-                    RotateLeft(C & BlueMask, BlueShift) |
-                    RotateLeft(C & AlphaMask, AlphaShift));
+
+                real32 R = (real32)((C & RedMask) >> RedShiftDown);
+                real32 G = (real32)((C & GreenMask) >> GreenShiftDown);
+                real32 B = (real32)((C & BlueMask) >> BlueShiftDown);
+                real32 A = (real32)((C & AlphaMask) >> AlphaShiftDown);
+                real32 AN = (A/255.0f);
+
+#if 1
+                R *= AN;
+                G *= AN;
+                B *= AN;
+#endif
+
+                *SourceDest = (((uint32)(A + 0.5f) << 24) |
+                                ((uint32)(R + 0.5f) << 16) |
+                                ((uint32)(G + 0.5f) << 8)  |
+                                ((uint32)(B + 0.5f) << 0));
+
                 ++SourceDest;
             }
         }
@@ -547,6 +564,7 @@ sim_entity_collision_volume_group * MakeNullCollision(game_state *GameState)
 
 internal void DrawTestGround(game_state *GameState, loaded_bitmap *Buffer)
 {
+    DrawRectangle(Buffer, V2(0.0f, 0.0f), V2i(Buffer->Width, Buffer->Height), 0, 0, 0);
     random_series Series = RandomSeed(1234);
 
     v2 Center = 0.5f * V2i(Buffer->Width, Buffer->Height);
@@ -850,7 +868,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         AddMonstar(GameState, CameraTileX - 3, CameraTileY + 2, CameraTileZ);
         for (int FamiliarIndex = 0;
-            FamiliarIndex < 10;
+            FamiliarIndex < 1;
             ++FamiliarIndex)
         {
             int32 FamiliarOffsetX = RandomBetween(&Series, -7, 7);
@@ -1161,10 +1179,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                 real32 EntityGroundPointX = ScreenCenterX + MetersToPixels * ZFudge * EntityBaseP.X;
                 real32 EntityGroundPointY = ScreenCenterY - MetersToPixels * ZFudge * EntityBaseP.Y;
-                real32 EntityZ = -MetersToPixels * EntityBaseP.Z;
+                real32 EntityZ = -MetersToPixels * (EntityBaseP.Z + Piece->OffsetZ); //I added the OffsetZ here to actually apply the offzetZ to the Z not only the Zfudge
 
                 v2 Center = { EntityGroundPointX + Piece->Offset.X,
-                    EntityGroundPointY + Piece->Offset.Y + Piece->OffsetZ + Piece->EntityZC* EntityZ };
+                              EntityGroundPointY + Piece->Offset.Y + Piece->EntityZC * EntityZ };
                 if (Piece->Bitmap)
                 {
                     DrawBitmap(DrawBuffer, Piece->Bitmap,
