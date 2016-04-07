@@ -562,14 +562,15 @@ sim_entity_collision_volume_group * MakeNullCollision(game_state *GameState)
 
 }
 
-internal void DrawTestGround(game_state *GameState, loaded_bitmap *Buffer)
+internal void DrawGroundChunk(game_state *GameState, loaded_bitmap *Buffer, world_position *ChunkP)
 {
-    DrawRectangle(Buffer, V2(0.0f, 0.0f), V2i(Buffer->Width, Buffer->Height), 0, 0, 0);
-    random_series Series = RandomSeed(1234);
+    random_series Series = RandomSeed(139*ChunkP->ChunkX + 593*ChunkP->ChunkY + 329*ChunkP->ChunkZ);
 
-    v2 Center = 0.5f * V2i(Buffer->Width, Buffer->Height);
+    real32 Width = (real32)Buffer->Width;
+    real32 Height = (real32)Buffer->Height;
+    v2 Center = 0.5f * V2(Width, Height);
     for(uint32 GrassIndex = 0;
-    GrassIndex < 100;
+    GrassIndex < 1000;
         ++GrassIndex)
     {
         loaded_bitmap *Stamp;
@@ -582,26 +583,20 @@ internal void DrawTestGround(game_state *GameState, loaded_bitmap *Buffer)
             Stamp = GameState->Ground + RandomChoice(&Series, ArrayCount(GameState->Ground));
         }
 
-        real32 Radius = 5.0f;
         v2 BitmapCenter = 0.5f*V2i(Stamp->Width, Stamp->Height);
-        v2 Offset = {RandomBilateral(&Series),RandomBilateral(&Series)};
-
-        v2 P = Center + GameState->MetersToPixels * Radius * Offset - BitmapCenter;
-
+        v2 Offset = {Width*RandomUnilateral(&Series),Height*RandomUnilateral(&Series)};
+        v2 P = Offset - BitmapCenter;
         DrawBitmap(Buffer, Stamp, P.X, P.Y);
     }
     for(uint32 GrassIndex = 0;
-    GrassIndex < 100;
+    GrassIndex < 1000;
         ++GrassIndex)
     {
         loaded_bitmap *Stamp = GameState->Tuft + RandomChoice(&Series, ArrayCount(GameState->Tuft));
 
-        real32 Radius = 5.0f;
         v2 BitmapCenter = 0.5f*V2i(Stamp->Width, Stamp->Height);
-        v2 Offset = {RandomBilateral(&Series),RandomBilateral(&Series)};
-
-        v2 P = Center + GameState->MetersToPixels * Radius * Offset - BitmapCenter;
-
+        v2 Offset = { Width*RandomUnilateral(&Series),Height*RandomUnilateral(&Series) };
+        v2 P = Offset - BitmapCenter;
         DrawBitmap(Buffer, Stamp, P.X, P.Y);
     }
 }
@@ -744,7 +739,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         for (uint32 ScreenIndex = 0; ScreenIndex < 2000; ++ScreenIndex)
         {
             uint32 DoorDirection = RandomChoice(&Series, (DoorUp || DoorDown) ? 2 : 3);
- 
+            //uint32 DoorDirection = RandomChoice(&Series, 2);
+
             bool32 CreatedZDoor = false;
             if (DoorDirection == 2)
             {
@@ -805,8 +801,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                     if (ShouldBeDoor)
                     {
-                        if(ScreenIndex == 0)
-                            AddWall(GameState, AbsTileX, AbsTileY, AbsTileZ);
+                        AddWall(GameState, AbsTileX, AbsTileY, AbsTileZ);
                     }
                     else if (CreatedZDoor)
                     {
@@ -881,8 +876,15 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             }
         }
 
-        GameState->GroundBuffer = MakeEmptyBitmap(&GameState->WorldArena, 512, 512);
-        DrawTestGround(GameState, &GameState->GroundBuffer);
+        real32 ScreenWidth = (real32)Buffer->Width;
+        real32 ScreenHeight = (real32)Buffer->Height;
+        real32 MaximumZScale = 0.5f;
+        real32 GroundOverscan = 1.5f;
+        uint32 GroundBufferWidth = RoundReal32ToInt32(ScreenWidth * GroundOverscan);
+        uint32 GroundBufferHeight= RoundReal32ToInt32(ScreenHeight* GroundOverscan);
+        GameState->GroundBuffer = MakeEmptyBitmap(&GameState->WorldArena, GroundBufferWidth, GroundBufferHeight);
+        GameState->GroundBufferP = GameState->CameraP;
+        DrawGroundChunk(GameState, &GameState->GroundBuffer, &GameState->GroundBufferP);
 
         Memory->IsInitialized = true;
     }
@@ -991,11 +993,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     DrawBuffer->Memory = (uint32*)Buffer->Memory;
 
     DrawRectangle(DrawBuffer, V2(0.0f, 0.0f), V2((real32)DrawBuffer->Width, (real32)DrawBuffer->Height), 0.5f, 0.5f, 0.5f);
-    //TODO: draw this at center
-    DrawBitmap(DrawBuffer, &GameState->GroundBuffer, 0, 0);
 
     real32 ScreenCenterX = 0.5f*(real32)DrawBuffer->Width;
     real32 ScreenCenterY = 0.5f*(real32)DrawBuffer->Height;
+
+    v2 Ground = { ScreenCenterX - 0.5f*(GameState->GroundBuffer.Width),
+           ScreenCenterY - 0.5f*(GameState->GroundBuffer.Height) };
+    v3 Delta = Subtract(GameState->World, &GameState->GroundBufferP, &GameState->CameraP);
+    Delta.Y = -Delta.Y;
+    Ground += GameState->MetersToPixels * Delta.XY;
+    DrawBitmap(DrawBuffer, &GameState->GroundBuffer, Ground.X, Ground.Y);
 
     entity_visible_piece_group PieceGroup;
     PieceGroup.GameState = GameState;
@@ -1072,6 +1079,19 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 case EntityType_Stairwell:
                 {
                     PushRect(&PieceGroup, V2(0, 0), 0, Entity->WalkableDim, V4(1, 0.5f, 0, 1), 0.0f);
+                    //Draw "3D" shafts for the stairwell
+                    //v2 smallDim = { 0.2f, 0.2f };
+                    //v2 startPos = -(Entity->WalkableDim * 0.5f);
+                    //startPos.Y = -startPos.Y;
+                    //v4 color = V4(1, 1, 1, 1);
+                    //for (int i = 0; i < 4; i++)
+                    //{
+                    //    real32 height = Entity->WalkableHeight / 4.0f * (real32)i;
+                    //    PushRect(&PieceGroup, startPos, height, smallDim, color, 0.0f);
+                    //    PushRect(&PieceGroup, startPos + V2(Entity->WalkableDim.X, 0), height, smallDim, color, 0.0f);
+                    //    PushRect(&PieceGroup, startPos + V2(Entity->WalkableDim.X, -Entity->WalkableDim.Y), height, smallDim, color, 0.0f);
+                    //    PushRect(&PieceGroup, startPos + V2(0, -Entity->WalkableDim.Y), height, smallDim, color, 0.0f);
+                    //}
                     PushRect(&PieceGroup, V2(0, 0), Entity->WalkableHeight, Entity->WalkableDim, V4(1, 1, 0, 1), 0.0f);
                 } break;
 
