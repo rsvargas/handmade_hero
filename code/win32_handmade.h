@@ -2,28 +2,28 @@
 
 struct win32_offscreen_buffer
 {
-	//NOTE: Pixels are always 32bit wide
-	BITMAPINFO Info;
-	void* Memory;
-	int Width;
-	int Height;
-	int Pitch;
+    //NOTE: Pixels are always 32bit wide
+    BITMAPINFO Info;
+    void* Memory;
+    int Width;
+    int Height;
+    int Pitch;
     int BytesPerPixel;
     int BitmapMemorySize;
 };
 
 struct win32_window_dimension
 {
-	int Width;
-	int Height;
+    int Width;
+    int Height;
 };
 
 struct win32_sound_output
 {
-	int SamplesPerSecond;
-	uint32 RunningSampleIndex;
-	int BytesPerSample;
-	DWORD SecondaryBufferSize;
+    int SamplesPerSecond;
+    uint32 RunningSampleIndex;
+    int BytesPerSample;
+    DWORD SecondaryBufferSize;
     DWORD SafetyBytes;
 };
 

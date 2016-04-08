@@ -28,13 +28,23 @@ struct memory_arena
     memory_index Size;
     uint8* Base;
     memory_index Used;
+
+    int32 TempCount;
 };
+
+struct temporary_memory
+{
+    memory_arena *Arena;
+    memory_index Used;
+};
+
 
 inline void InitializeArena(memory_arena* Arena, memory_index Size, void *Base)
 {
     Arena->Size = Size;
     Arena->Base = (uint8*)Base;
     Arena->Used = 0;
+    Arena->TempCount = 0;
 }
 
 #define PushStruct(Arena, Type) (Type*)PushSize_(Arena, sizeof(Type))
@@ -46,6 +56,33 @@ inline void* PushSize_(memory_arena* Arena, memory_index Size)
     Arena->Used += Size;
     return Result;
 }
+
+inline temporary_memory BeginTemporaryMemory(memory_arena *Arena)
+{
+    temporary_memory Result;
+
+    Result.Arena = Arena;
+    Result.Used = Arena->Used;
+    ++Arena->TempCount;
+
+    return Result;
+
+}
+
+inline void EndTemporaryMemory(temporary_memory TempMem)
+{
+    memory_arena *Arena = TempMem.Arena;
+    Assert(Arena->Used >= TempMem.Used);
+    Arena->Used = TempMem.Used;
+    Assert(Arena->TempCount > 0);
+    --Arena->TempCount;
+}
+
+inline void CheckArena(memory_arena *Arena)
+{
+    Assert(Arena->TempCount == 0);
+}
+
 
 #define ZeroStruct(Instance) ZeroSize(sizeof(Instance), &(Instance))
 inline void ZeroSize(memory_index Size, void* Ptr)
@@ -116,8 +153,17 @@ struct game_state;
 internal void ClearCollisionRulesFor(game_state *GameState, uint32 StorageIndex);
 internal void AddCollisionRule(game_state *GameState, uint32 StorageIndexA, uint32 StorageIndexB, bool32 CanCollide);
 
+
+struct ground_buffer
+{
+    //Note: An invalid P tells us that this ground_buffer has not been filled
+    world_position P;
+    uint32* Memory;
+};
+
 struct game_state
 {
+    memory_arena TransientArena;
     memory_arena WorldArena;
     world * World;
 
@@ -155,8 +201,15 @@ struct game_state
     sim_entity_collision_volume_group *FamiliarCollision;
     sim_entity_collision_volume_group *StandardRoomCollision;
 
-    world_position GroundBufferP;
-    loaded_bitmap GroundBuffer;
+};
+
+struct transient_state
+{
+    bool32 IsInitialized;
+    memory_arena TranArena;
+    uint32 GroundBufferCount;
+    loaded_bitmap GroundBitmapTemplate;
+    ground_buffer *GroundBuffers;
 };
 
 struct entity_visible_piece_group
