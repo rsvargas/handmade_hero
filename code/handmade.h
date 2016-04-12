@@ -163,9 +163,10 @@ struct ground_buffer
 
 struct game_state
 {
-    memory_arena TransientArena;
     memory_arena WorldArena;
     world * World;
+
+    real32 TypicalFloorHeight;
 
     uint32 CameraFollowingEntityIndex;
     world_position CameraP;
@@ -187,6 +188,7 @@ struct game_state
     loaded_bitmap Sword;
     loaded_bitmap Stairwell;
     real32 MetersToPixels;
+    real32 PixelsToMeters;
 
     //TODO: Must be power of two
     pairwise_collision_rule *CollisionRuleHash[256];
