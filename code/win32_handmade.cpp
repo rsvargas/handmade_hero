@@ -1167,18 +1167,21 @@ int CALLBACK WinMain(HINSTANCE Instance,
                 int64 LastCycleCount = __rdtsc();
 
                 win32_game_code Game = Win32LoadGameCode(SourceGameCodeDLLFullPath, TempGameCodeDLLFullPath, GameCodeLockFullPath);
-                uint64 LoadCounter = 0;
 
                 while (GlobalRunning)
                 {
                     NewInput->dtForFrame = TargetSecondsPerFrame;
-                    FILETIME NewDLLWriteTime = Win32GetLastWriteTime(SourceGameCodeDLLFullPath);
 
+                    NewInput->ExecutableReloaded = false;
+
+                    FILETIME NewDLLWriteTime = Win32GetLastWriteTime(SourceGameCodeDLLFullPath);
                     if (CompareFileTime(&NewDLLWriteTime, &Game.DLLLastWriteTime) != 0)
                     {
                         Win32UnloadGameCode(&Game);
-                        Game = Win32LoadGameCode(SourceGameCodeDLLFullPath, TempGameCodeDLLFullPath, GameCodeLockFullPath);
-                        LoadCounter = 0;
+                        Game = Win32LoadGameCode(SourceGameCodeDLLFullPath, 
+                                                 TempGameCodeDLLFullPath, 
+                                                 GameCodeLockFullPath);
+                        NewInput->ExecutableReloaded = true;
                     }
 
                     game_controller_input* OldKeyboardController = GetController(OldInput,0);

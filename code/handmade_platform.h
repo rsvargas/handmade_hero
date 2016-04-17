@@ -6,9 +6,6 @@
 extern "C" {
 #endif
 
-#include <stdint.h>
-#include <stddef.h>
-
 //
 // NOTE: Compilers
 //
@@ -37,6 +34,11 @@ extern "C" {
 //
 // NOTE: Types
 //
+#include <stdint.h>
+#include <stddef.h>
+#include <limits.h>
+#include <float.h>
+
 typedef int8_t int8;
 typedef int16_t int16;
 typedef int32_t int32;
@@ -52,6 +54,8 @@ typedef size_t memory_index;
 
 typedef float real32;
 typedef double real64;
+
+#define Real32Maximum FLT_MAX
 
 #define internal static
 #define local_persist static
@@ -182,6 +186,7 @@ typedef struct game_input
     int32 MouseY;
     int32 MouseZ;
 
+    bool32 ExecutableReloaded;
     real32 dtForFrame; //delta time in seconds
     //keyboard is zero
     game_controller_input Controllers[5];
