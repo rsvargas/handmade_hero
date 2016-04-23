@@ -49,6 +49,7 @@ inline void InitializeArena(memory_arena* Arena, memory_index Size, void *Base)
 
 #define PushStruct(Arena, Type) (Type*)PushSize_(Arena, sizeof(Type))
 #define PushArray(Arena, Count, Type) (Type*)PushSize_(Arena, (Count)*sizeof(Type))
+#define PushSize(Arena, Size) PushSize_(Arena, Size)
 inline void* PushSize_(memory_arena* Arena, memory_index Size)
 {
     Assert((Arena->Used + Size) <= Arena->Size);
@@ -122,17 +123,6 @@ struct low_entity
     sim_entity Sim;
 };
 
-struct entity_visible_piece
-{
-    loaded_bitmap *Bitmap;
-    v2 Offset;
-    real32 OffsetZ;
-    real32 EntityZC;
-
-    real32 R, G, B, A;
-    v2 Dim;
-};
-
 struct controlled_hero
 {
     uint32 EntityIndex;
@@ -158,7 +148,7 @@ struct ground_buffer
 {
     //Note: An invalid P tells us that this ground_buffer has not been filled
     world_position P;
-    uint32* Memory;
+    loaded_bitmap Bitmap;
 };
 
 struct game_state
@@ -210,15 +200,7 @@ struct transient_state
     bool32 IsInitialized;
     memory_arena TranArena;
     uint32 GroundBufferCount;
-    loaded_bitmap GroundBitmapTemplate;
     ground_buffer *GroundBuffers;
-};
-
-struct entity_visible_piece_group
-{
-    game_state *GameState;
-    uint32 PieceCount;
-    entity_visible_piece Pieces[32];
 };
 
 inline low_entity* GetLowEntity(game_state *GameState, uint32 Index)

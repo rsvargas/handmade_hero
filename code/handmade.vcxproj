@@ -157,6 +157,7 @@ popd</NMakeBuildCommandLine>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="handmade.cpp" />
+    <ClCompile Include="handmade_render_group.cpp" />
     <ClCompile Include="handmade_world.cpp" />
     <ClCompile Include="handmade_sim_region.cpp" />
     <ClCompile Include="handmade_entity.cpp" />
@@ -169,6 +170,7 @@ popd</NMakeBuildCommandLine>
     <ClInclude Include="handmade_math.h" />
     <ClInclude Include="handmade_platform.h" />
     <ClInclude Include="handmade_random.h" />
+    <ClInclude Include="handmade_render_group.h" />
     <ClInclude Include="handmade_world.h" />
     <ClInclude Include="handmade_sim_region.h" />
     <ClInclude Include="win32_handmade.h" />
