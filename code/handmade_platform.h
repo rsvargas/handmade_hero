@@ -70,6 +70,7 @@ typedef double real64;
 #endif
 
 #define INVALID_CODE_PATH Assert(!"InvalidCodePath")
+#define INVALID_DEFAULT_CASE default: {INVALID_CODE_PATH;} break
 
 #define KILOBYTES(V) ((V)*1024LL)
 #define MEGABYTES(V) (KILOBYTES(V)*1024LL)

@@ -39,14 +39,14 @@
     <ConfigurationType>Makefile</ConfigurationType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>Makefile</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>Makefile</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -73,23 +73,52 @@
     <NMakeBuildCommandLine>pushd $(SolutionDir)
 $(SolutionDir)\build.bat
 popd</NMakeBuildCommandLine>
-    <NMakePreprocessorDefinitions>HANDMADE_INTERNAL=1;HANDMADE_SLOW=1;HANDMADE_WIN32</NMakePreprocessorDefinitions>
+    <NMakePreprocessorDefinitions>HANDMADE_INTERNAL=1;HANDMADE_SLOW=1;HANDMADE_WIN32=1</NMakePreprocessorDefinitions>
     <NMakeIncludeSearchPath>C:\dev\handmade_hero\code</NMakeIncludeSearchPath>
-    <NMakeForcedIncludes>handmade.cpp</NMakeForcedIncludes>
+    <NMakeForcedIncludes>handmade.cpp;win32_handmade.cpp</NMakeForcedIncludes>
+    <NMakeOutput>$(SolutionDir)\build\win32_handmade.exe</NMakeOutput>
+    <NMakeReBuildCommandLine>pushd $(SolutionDir)
+$(SolutionDir)\build.bat
+popd</NMakeReBuildCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <NMakeBuildCommandLine>pushd ..
-rem build.bat
+    <NMakeBuildCommandLine>pushd $(SolutionDir)
+$(SolutionDir)\build.bat
 popd</NMakeBuildCommandLine>
-    <NMakeOutput>..\build\win32_handmade.exe</NMakeOutput>
+    <NMakeOutput>$(SolutionDir)\build\win32_handmade.exe</NMakeOutput>
     <NMakePreprocessorDefinitions>HANDMADE_INTERNAL=1;HANDMADE_SLOW=1;HANDMADE_WIN32=1</NMakePreprocessorDefinitions>
+    <NMakeIncludeSearchPath>C:\dev\handmade_hero\code</NMakeIncludeSearchPath>
+    <NMakeForcedIncludes>handmade.cpp;win32_handmade.cpp</NMakeForcedIncludes>
+    <NMakeReBuildCommandLine>pushd $(SolutionDir)
+$(SolutionDir)\build.bat
+popd</NMakeReBuildCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <NMakeBuildCommandLine>pushd $(SolutionDir)
+$(SolutionDir)\build.bat
+popd</NMakeBuildCommandLine>
+    <NMakeOutput>$(SolutionDir)\build\win32_handmade.exe</NMakeOutput>
+    <NMakePreprocessorDefinitions>HANDMADE_INTERNAL=1;HANDMADE_SLOW=1;HANDMADE_WIN32=1</NMakePreprocessorDefinitions>
+    <NMakeIncludeSearchPath>C:\dev\handmade_hero\code</NMakeIncludeSearchPath>
+    <NMakeForcedIncludes>handmade.cpp;win32_handmade.cpp</NMakeForcedIncludes>
+    <NMakeReBuildCommandLine>pushd $(SolutionDir)
+$(SolutionDir)\build.bat
+popd</NMakeReBuildCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <NMakeBuildCommandLine>pushd $(SolutionDir)
+$(SolutionDir)\build.bat
+popd</NMakeBuildCommandLine>
+    <NMakeOutput>$(SolutionDir)\build\win32_handmade.exe</NMakeOutput>
+    <NMakePreprocessorDefinitions>HANDMADE_INTERNAL=1;HANDMADE_SLOW=1;HANDMADE_WIN32=1</NMakePreprocessorDefinitions>
+    <NMakeIncludeSearchPath>C:\dev\handmade_hero\code</NMakeIncludeSearchPath>
+    <NMakeForcedIncludes>handmade.cpp;win32_handmade.cpp</NMakeForcedIncludes>
+    <NMakeReBuildCommandLine>pushd $(SolutionDir)
+$(SolutionDir)\build.bat
+popd</NMakeReBuildCommandLine>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
