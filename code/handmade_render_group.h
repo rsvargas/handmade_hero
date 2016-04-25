@@ -29,7 +29,7 @@ struct render_group_entry_header
 struct render_entry_clear
 {
     render_group_entry_header Header;
-    real32 R, G, B, A;
+    v4 Color;
 };
 
 struct render_entry_bitmap

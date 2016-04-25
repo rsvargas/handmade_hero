@@ -230,26 +230,26 @@ internal void EndSim(sim_region *Region, game_state *GameState)
             NewCameraP.ChunkZ = Stored->P.ChunkZ;
 
 #if 0
-            if(CameraFollowingEntity.High->P.X > (9.0f*World->TileSideInMeters))
+            if(CameraFollowingEntity.High->P.x > (9.0f*World->TileSideInMeters))
             {
                 NewCameraP.AbsTileX += 17;
             }
-            if(CameraFollowingEntity.High->P.X < -(9.0f*World->TileSideInMeters))
+            if(CameraFollowingEntity.High->P.x < -(9.0f*World->TileSideInMeters))
             {
                 NewCameraP.AbsTileX -= 17;
             }
-            if(CameraFollowingEntity.High->P.Y > (5.0f*World->TileSideInMeters))
+            if(CameraFollowingEntity.High->P.y > (5.0f*World->TileSideInMeters))
             {
                 NewCameraP.AbsTileY += 9;
             }
-            if(CameraFollowingEntity.High->P.Y < -(5.0f*World->TileSideInMeters))
+            if(CameraFollowingEntity.High->P.y < -(5.0f*World->TileSideInMeters))
             {
                 NewCameraP.AbsTileY -= 9;
             }
 #else
-            real32 CamZOffset = NewCameraP.Offset_.Z;
+            real32 CamZOffset = NewCameraP.Offset_.z;
             NewCameraP = Stored->P;
-            NewCameraP.Offset_.Z = CamZOffset;
+            NewCameraP.Offset_.z = CamZOffset;
 #endif
 
             GameState->CameraP = NewCameraP;
@@ -398,13 +398,13 @@ internal bool32 SpeculativeCollide(sim_entity* Mover, sim_entity* Region, v3 Tes
 
         real32 StepHeight = 0.1f;
 #if 0
-        real32 Difference = AbsoluteValue(GetEntityGroundPoint(Mover).Z - Ground);
+        real32 Difference = AbsoluteValue(GetEntityGroundPoint(Mover).z - Ground);
         Result = ((Difference > StepHeight) ||
-                    ((Bary.Y > 0.1f) && (Bary.Y < 0.9f)));
+                    ((Bary.y > 0.1f) && (Bary.y < 0.9f)));
 #endif
         v3 MoverGroundPoint = GetEntityGroundPoint(Mover, TestP);
         real32 Ground = GetStairGround(Region, MoverGroundPoint);
-        Result = (AbsoluteValue(MoverGroundPoint.Z - Ground) > StepHeight);
+        Result = (AbsoluteValue(MoverGroundPoint.z - Ground) > StepHeight);
     }
     return Result;
 }
@@ -454,7 +454,7 @@ internal void MoveEntity(game_state *GameState, sim_region * SimRegion, sim_enti
     ddP *= MoveSpec->Speed;
      
     v3 Drag = -MoveSpec->Drag*Entity->dP;
-    Drag.Z = 0;
+    Drag.z = 0;
     ddP += Drag;
     if(!IsSet(Entity, EntityFlag_ZSupported))
     {
@@ -527,23 +527,23 @@ internal void MoveEntity(game_state *GameState, sim_region * SimRegion, sim_enti
                                 ++TestVolumeIndex)
                             {
                                 sim_entity_collision_volume *TestVolume = TestEntity->Collision->Volumes + TestVolumeIndex;
-                                v3 MinkowskiDiameter = { TestVolume->Dim.X + Volume->Dim.X,
-                                    TestVolume->Dim.Y + Volume->Dim.Y,
-                                    TestVolume->Dim.Z + Volume->Dim.Z };
+                                v3 MinkowskiDiameter = { TestVolume->Dim.x + Volume->Dim.x,
+                                    TestVolume->Dim.y + Volume->Dim.y,
+                                    TestVolume->Dim.z + Volume->Dim.z };
 
                                 v3 MinCorner = -0.5f * MinkowskiDiameter;
                                 v3 MaxCorner = 0.5f * MinkowskiDiameter;
 
                                 v3 Rel = (Entity->P + Volume->OffsetP) - (TestEntity->P + TestVolume->OffsetP);
 
-                                if ((Rel.Z >= MinCorner.Z) && (Rel.Z < MaxCorner.Z))
+                                if ((Rel.z >= MinCorner.z) && (Rel.z < MaxCorner.z))
                                 {
                                     test_wall Walls[] =
                                     {
-                                        { MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, MinCorner.Y, MaxCorner.Y, V3(-1, 0, 0) },
-                                        { MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, MinCorner.Y, MaxCorner.Y, V3(1, 0, 0) },
-                                        { MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, MinCorner.X, MaxCorner.X, V3(0, -1, 0) },
-                                        { MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, MinCorner.X, MaxCorner.X, V3(0, 1, 0) }
+                                        { MinCorner.x, Rel.x, Rel.y, PlayerDelta.x, PlayerDelta.y, MinCorner.y, MaxCorner.y, V3(-1, 0, 0) },
+                                        { MaxCorner.x, Rel.x, Rel.y, PlayerDelta.x, PlayerDelta.y, MinCorner.y, MaxCorner.y, V3(1, 0, 0) },
+                                        { MinCorner.y, Rel.y, Rel.x, PlayerDelta.y, PlayerDelta.x, MinCorner.x, MaxCorner.x, V3(0, -1, 0) },
+                                        { MaxCorner.y, Rel.y, Rel.x, PlayerDelta.y, PlayerDelta.x, MinCorner.x, MaxCorner.x, V3(0, 1, 0) }
                                     };
 
                                     if(IsSet(TestEntity, EntityFlag_Traversable))
@@ -678,14 +678,14 @@ internal void MoveEntity(game_state *GameState, sim_region * SimRegion, sim_enti
         }
     }
 
-    Ground += Entity->P.Z - GetEntityGroundPoint(Entity).Z;
+    Ground += Entity->P.z - GetEntityGroundPoint(Entity).z;
 
-    if ((Entity->P.Z <= Ground) ||
+    if ((Entity->P.z <= Ground) ||
         (IsSet(Entity, EntityFlag_ZSupported) &&
-         (Entity->dP.Z == 0.0f)))
+         (Entity->dP.z == 0.0f)))
     {
-        Entity->P.Z = Ground;
-        Entity->dP.Z = 0;
+        Entity->P.z = Ground;
+        Entity->dP.z = 0;
         AddFlags(Entity, EntityFlag_ZSupported);
     }
     else
@@ -699,13 +699,13 @@ internal void MoveEntity(game_state *GameState, sim_region * SimRegion, sim_enti
     }
 
 
-    if ((Entity->dP.X == 0.0f) && (Entity->dP.Y == 0.0f))
+    if ((Entity->dP.x == 0.0f) && (Entity->dP.y == 0.0f))
     {
         //NOTE: leaving faceDirection whatever it was
     }
-    else if (AbsoluteValue(Entity->dP.X) > AbsoluteValue(Entity->dP.Y))
+    else if (AbsoluteValue(Entity->dP.x) > AbsoluteValue(Entity->dP.y))
     {
-        if (Entity->dP.X > 0)
+        if (Entity->dP.x > 0)
         {
             Entity->FacingDirection = 0;
         }
@@ -716,7 +716,7 @@ internal void MoveEntity(game_state *GameState, sim_region * SimRegion, sim_enti
     }
     else
     {
-        if (Entity->dP.Y > 0)
+        if (Entity->dP.y > 0)
         {
             Entity->FacingDirection = 1;
         }
