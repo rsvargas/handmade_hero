@@ -264,7 +264,7 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             Assert(Entry->Bitmap)
             DrawBitmap(OutputTarget, Entry->Bitmap, P.x, P.y, Entry->A);
 
-            BaseAddress += sizeof(render_entry_bitmap);
+            BaseAddress += sizeof(*Entry);
         }break;
 
         case RenderGroupEntryType_render_entry_rectangle:
@@ -272,11 +272,36 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
             render_entry_rectangle *Entry = (render_entry_rectangle*)Header;
 
             v2 P = GetRenderEntityBasisP(RenderGroup, &Entry->EntityBasis, ScreenCenter);
-
             DrawRectangle(OutputTarget, P, P + Entry->Dim, Entry->R, Entry->G, Entry->B);
 
-            BaseAddress += sizeof(render_entry_rectangle);
+            BaseAddress += sizeof(*Entry);
         }break;
+
+        case RenderGroupEntryType_render_entry_coordinate_system:
+        {
+            render_entry_coordinate_system *Entry = (render_entry_coordinate_system *)Header;
+            v2 Dim = { 2, 2 };
+            v2 P = Entry->Origin;
+            DrawRectangle(OutputTarget, P - Dim, P + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
+
+            P = Entry->Origin + Entry->XAxis;
+            DrawRectangle(OutputTarget, P - Dim, P + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
+
+            P = Entry->Origin + Entry->YAxis;
+            DrawRectangle(OutputTarget, P - Dim, P + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
+
+            for(uint32 PIndex = 0;
+                PIndex < ArrayCount(Entry->Points);
+                ++PIndex)
+            {
+                P = Entry->Points[PIndex];
+                P = Entry->Origin + P.x * Entry->XAxis + P.y * Entry->YAxis;
+                DrawRectangle(OutputTarget, P - Dim, P + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
+
+            }
+            BaseAddress += sizeof(*Entry);
+        }break;
+
 
         INVALID_DEFAULT_CASE;
         }
@@ -386,5 +411,20 @@ inline void Clear(render_group *Group, v4 Color)
     {
         Entry->Color = Color;
     }
+
+}
+
+inline render_entry_coordinate_system *PushCooridnateSystem(render_group *Group, v2 Origin, v2 XAxis, v2 YAxis, v4 Color)
+{
+    render_entry_coordinate_system *Entry = PushRenderElement(Group, render_entry_coordinate_system);
+    if(Entry)
+    {
+        Entry->Origin = Origin;
+        Entry->XAxis = XAxis;
+        Entry->YAxis = YAxis;
+        Entry->Color = Color;
+    }
+
+    return Entry;
 
 }

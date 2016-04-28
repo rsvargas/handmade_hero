@@ -845,6 +845,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     }
 
+#if 0
     if(Input->ExecutableReloaded)
     {
         for(uint32 GroundBufferIndex = 0;
@@ -855,6 +856,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             GroundBuffer->P = NullPosition();
         }
     }
+#endif
 
 
     world * World = GameState->World;
@@ -1237,6 +1239,27 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             Basis->P = GetEntityGroundPoint(Entity);
 
         }
+    }
+
+    GameState->Time += Input->dtForFrame;
+    real32 Angle = GameState->Time;
+
+    v2 Origin = ScreenCenter + 10.0f * V2(Cos(Angle), Sin(Angle));
+    v2 XAxis = (100.0f + 25.0f *Cos(4.2f*Angle))*V2(Cos(Angle), Sin(Angle));
+    v2 YAxis = (100.0f + 50.0f *Sin(3.9f*Angle))*V2(Cos(Angle + 1.0f), Sin(Angle + 1.0f));
+    uint32 PIndex = 0; 
+    render_entry_coordinate_system *C = PushCooridnateSystem(RenderGroup, Origin, XAxis, YAxis, V4(0.5f+0.5f*Sin(Angle), 0.5f+0.5f*Sin(2.9f*Angle), 0.5f+0.5f*Cos(9.9f*Angle), 1.0f));
+    for(real32 X = 0.0f;
+        X < 1.0f;
+        X += 0.25f)
+    {
+        for(real32 Y = 0.0f;
+            Y < 1.0f;
+            Y += 0.25f)
+        {
+            C->Points[PIndex++] = V2(X, Y);
+        }
+
     }
 
     RenderGroupToOutput(RenderGroup, DrawBuffer);
