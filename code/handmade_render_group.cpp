@@ -49,6 +49,80 @@ internal void DrawRectangle(loaded_bitmap *Buffer,
 
 }
 
+internal void DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Color)
+{
+    uint32 Color32 = ((RoundReal32ToUInt32(Color.a*255.0f) << 24) |
+                    (RoundReal32ToUInt32(Color.r*255.0f) << 16) |
+                    (RoundReal32ToUInt32(Color.g*255.0f) << 8) |
+                    (RoundReal32ToUInt32(Color.b*255.0f) << 0));
+
+    int WidthMax = Buffer->Width - 1;
+    int HeightMax = Buffer->Height - 1;
+
+    int XMin = WidthMax;
+    int XMax = 0;
+    int YMin = HeightMax;
+    int YMax = 0;
+
+    v2 P[4] = { Origin, Origin + XAxis, Origin + XAxis + YAxis, Origin + YAxis };
+    for(int PIndex=0;
+        PIndex < ArrayCount(P);
+        ++PIndex)
+    {
+        v2 TestP = P[PIndex];
+        int FloorX = FloorReal32ToInt32(TestP.x);
+        int CeilX = CeilReal32ToInt32(TestP.x);
+        int FloorY = FloorReal32ToInt32(TestP.y);
+        int CeilY = CeilReal32ToInt32(TestP.y);
+
+        if(XMin > FloorX) { XMin = FloorX; }
+        if(YMin > FloorY) { YMin = FloorY; }
+        if(XMax < CeilX) { XMax = CeilX; }
+        if(YMax < CeilY) { YMax = CeilY; }
+    }
+
+    if(XMin < 0) { XMin = 0; }
+    if(YMin < 0) { YMin = 0; }
+    if(XMax > WidthMax) { XMax = WidthMax; }
+    if(YMax > HeightMax) { YMax = HeightMax; }
+
+
+    uint8* Row = (((uint8*)Buffer->Memory) +
+                  XMin * BITMAP_BYTES_PER_PIXEL +
+                  YMin * Buffer->Pitch);
+    for(int Y = YMin;
+        Y <= YMax;
+        ++Y)
+    {
+        uint32 *Pixel = (uint32*)Row;
+        for(int X = XMin; 
+            X <= XMax; 
+            ++X)
+        {
+#if 1
+            v2 PixelP = V2i( X, Y );
+            real32 Edge0 = Inner(PixelP - Origin, -Perp(XAxis));
+            real32 Edge1 = Inner(PixelP - (Origin + XAxis), -Perp(YAxis));
+            real32 Edge2 = Inner(PixelP - (Origin + XAxis + YAxis), Perp(XAxis));
+            real32 Edge3 = Inner(PixelP - (Origin + YAxis), Perp(YAxis));
+
+            if( ( Edge0 < 0 ) && 
+                ( Edge1 < 0 ) &&
+                ( Edge2 < 0) && 
+                ( Edge3 < 0 ) )
+            {
+                *Pixel = Color32;
+            }
+#else
+            *Pixel = Color32;
+#endif
+            ++Pixel;
+        }
+        Row += Buffer->Pitch;
+    }
+
+}
+
 inline void DrawRectangleOutline(loaded_bitmap *Buffer, v2 vMin, v2 vMax,
                                  v3 Color, real32 T = 2.0f)
 {
@@ -280,16 +354,28 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
         case RenderGroupEntryType_render_entry_coordinate_system:
         {
             render_entry_coordinate_system *Entry = (render_entry_coordinate_system *)Header;
+
+            v2 vMax = (Entry->Origin + Entry->XAxis + Entry->YAxis);
+            DrawRectangleSlowly(OutputTarget, 
+                                Entry->Origin, 
+                                Entry->XAxis, 
+                                Entry->YAxis, 
+                                Entry->Color);
+
+            v4 Color = { 1, 1, 0, 1 };
             v2 Dim = { 2, 2 };
             v2 P = Entry->Origin;
-            DrawRectangle(OutputTarget, P - Dim, P + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
+            DrawRectangle(OutputTarget, P - Dim, P + Dim, Color.r, Color.g, Color.b);
 
             P = Entry->Origin + Entry->XAxis;
-            DrawRectangle(OutputTarget, P - Dim, P + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
+            DrawRectangle(OutputTarget, P - Dim, P + Dim, Color.r, Color.g, Color.b);
 
             P = Entry->Origin + Entry->YAxis;
-            DrawRectangle(OutputTarget, P - Dim, P + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
+            DrawRectangle(OutputTarget, P - Dim, P + Dim, Color.r, Color.g, Color.b);
 
+            DrawRectangle(OutputTarget, vMax - Dim, vMax + Dim, Color.r, Color.g, Color.b);
+
+#if 0
             for(uint32 PIndex = 0;
                 PIndex < ArrayCount(Entry->Points);
                 ++PIndex)
@@ -299,6 +385,7 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
                 DrawRectangle(OutputTarget, P - Dim, P + Dim, Entry->Color.r, Entry->Color.g, Entry->Color.b);
 
             }
+#endif
             BaseAddress += sizeof(*Entry);
         }break;
 
