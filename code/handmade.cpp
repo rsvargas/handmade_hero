@@ -1242,14 +1242,21 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     }
 
     GameState->Time += Input->dtForFrame;
-    real32 Angle = GameState->Time;
+    real32 Angle = 0.2f*GameState->Time;
+    real32 Disp = 150.0f*Cos(5.0f*Angle);
 
     v2 Origin = ScreenCenter;
-    v2 XAxis = (50.0f+ 50.0f*Cos(Angle)) *V2(Cos(Angle), Sin(Angle));
-    v2 YAxis = (50.0f+ 50.0f*Cos(Angle)) *V2(Cos(Angle+1.0f), Sin(Angle+1.0f));
-    //v2 YAxis = V2(-XAxis.y, XAxis.x);
+#if 1
+    v2 XAxis = 300.0f*V2(Cos(Angle), Sin(Angle));
+    v2 YAxis = Perp(XAxis);
+#else
+    v2 XAxis = { 400.0f, 0 };
+    v2 YAxis = { 0.0f, 400.0f };
+#endif
     uint32 PIndex = 0; 
-    render_entry_coordinate_system *C = PushCooridnateSystem(RenderGroup, Origin, XAxis, YAxis, V4(0.5f+0.5f*Sin(Angle), 0.5f+0.5f*Sin(2.9f*Angle), 0.5f+0.5f*Cos(9.9f*Angle), 1.0f));
+    render_entry_coordinate_system *C = PushCooridnateSystem(RenderGroup, /*V2(Disp, 0) + */Origin - 0.5f*XAxis - 0.5f*YAxis, XAxis, YAxis, 
+                                                             V4(0.5f+0.5f*Sin(Angle), 0.5f+0.5f*Sin(2.9f*Angle), 0.5f+0.5f*Cos(9.9f*Angle), 1.0f),
+                                                             &GameState->Tree);
     for(real32 X = 0.0f; 
         X < 1.0f;
         X += 0.25f)
