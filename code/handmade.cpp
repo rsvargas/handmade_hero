@@ -1254,9 +1254,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     v2 YAxis = { 0.0f, 400.0f };
 #endif
     uint32 PIndex = 0; 
+    real32 CAngle = 5.0f * Angle;
+    v4 Color = V4(0.5f+0.5f*Sin(CAngle), 
+                  0.5f+0.5f*Sin(2.9f*CAngle), 
+                  0.5f+0.5f*Cos(9.9f*CAngle), 
+                  0.5f+0.5f*Sin(5.0f*CAngle));
     render_entry_coordinate_system *C = PushCooridnateSystem(RenderGroup, /*V2(Disp, 0) + */Origin - 0.5f*XAxis - 0.5f*YAxis, XAxis, YAxis, 
-                                                             V4(0.5f+0.5f*Sin(Angle), 0.5f+0.5f*Sin(2.9f*Angle), 0.5f+0.5f*Cos(9.9f*Angle), 1.0f),
-                                                             &GameState->Tree);
+                                                             Color, &GameState->Tree);
     for(real32 X = 0.0f; 
         X < 1.0f;
         X += 0.25f)
