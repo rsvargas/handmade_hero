@@ -40,8 +40,19 @@ union v4
     };
     struct
     {
-        real32 r, g, b, a;
+        union {
+            v3 rgb;
+            struct {
+                real32 r, g, b;
+            };
+        };
+        real32 a;
     };
+    //struct
+    //{
+    //    v3 rgb;
+    //    real32 a;
+    //};
     real32 E[4];
 };
 
@@ -180,8 +191,7 @@ inline real32 SafeRatio1(real32 Numerator, real32 Divisor)
 // V2 Operations
 //
 
-
-inline v2 Perp(v2 A)
+inline v2 Perp(v2 A) //Perpendicular
 {
     v2 Result = { -A.y, A.x };
     return Result;
