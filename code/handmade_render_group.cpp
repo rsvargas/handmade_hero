@@ -450,12 +450,13 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
         case RenderGroupEntryType_render_entry_bitmap:
         {
             render_entry_bitmap *Entry = (render_entry_bitmap*)Data;
+#if 0
 
             v2 P = GetRenderEntityBasisP(RenderGroup, &Entry->EntityBasis, ScreenCenter);
 
             Assert(Entry->Bitmap)
             DrawBitmap(OutputTarget, Entry->Bitmap, P.x, P.y, Entry->A);
-
+#endif
             BaseAddress += sizeof(*Entry);
         }break;
 
@@ -623,7 +624,7 @@ inline void Clear(render_group *Group, v4 Color)
 
 }
 
-inline render_entry_coordinate_system *PushCooridnateSystem(render_group *Group, v2 Origin, v2 XAxis, v2 YAxis, v4 Color,
+inline render_entry_coordinate_system *PushCoordinateSystem(render_group *Group, v2 Origin, v2 XAxis, v2 YAxis, v4 Color,
                                                             loaded_bitmap *Texture)
 {
     render_entry_coordinate_system *Entry = PushRenderElement(Group, render_entry_coordinate_system);
