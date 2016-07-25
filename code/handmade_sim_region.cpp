@@ -284,7 +284,7 @@ internal bool32 TestWall(real32 WallX, real32 RelX, real32 RelY, real32 PlayerDe
         {
             if ((Y >= MinY) && (Y <= MaxY))
             {
-                *tMin = MAXIMUM(0.0f, tResult - tEpsilon);
+                *tMin = Maximum(0.0f, tResult - tEpsilon);
                 Hit = true;
             }
         }
@@ -566,7 +566,7 @@ internal void MoveEntity(game_state *GameState, sim_region * SimRegion, sim_enti
                                                 {
                                                     if((Y >= Wall->MinY) && (Y <= Wall->MaxY))
                                                     {
-                                                        tMaxTest = MAXIMUM(0.0f, tResult - tEpsilon) ;
+                                                        tMaxTest = Maximum(0.0f, tResult - tEpsilon) ;
                                                         TestWallNormal = Wall->Normal;
                                                         HitThis = true;
                                                     }
@@ -601,7 +601,7 @@ internal void MoveEntity(game_state *GameState, sim_region * SimRegion, sim_enti
                                                 {
                                                     if((Y >= Wall->MinY) && (Y <= Wall->MaxY))
                                                     {
-                                                        tMinTest = MAXIMUM(0.0f, tResult - tEpsilon);
+                                                        tMinTest = Maximum(0.0f, tResult - tEpsilon);
                                                         TestWallNormal = Wall->Normal;
                                                         HitThis = true;
                                                     }

@@ -533,6 +533,45 @@ internal loaded_bitmap MakeEmptyBitmap(memory_arena *Arena, int32 Width, int32 H
     return Result;
 }
 
+internal void MakeSphereNormalMap(loaded_bitmap* Bitmap, real32 Roughness)
+{
+    real32 InvWidth = 1.0f / (1.0f - Bitmap->Width);
+    real32 InvHeight = 1.0f / (1.0f - Bitmap->Height);
+
+    uint8* Row = (uint8*)Bitmap->Memory;
+
+
+    for(int32 Y = 0;
+        Y < Bitmap->Height;
+        ++Y)
+    {
+        uint32 *Pixel = (uint32*)Row;
+        for(int32 X = 0;
+            X < Bitmap->Width;
+            ++X)
+        {
+            v2 BitmapUV = { InvWidth*(real32)X, InvHeight*(real32)Y };
+
+            v3 Normal = { 2.0f*BitmapUV.x - 1.0f, 2.0f*BitmapUV.y - 1.0f, 0.0f };
+            Normal.z = SquareRoot(1.0f - Minimum(1.0f, Square(Normal.x) + Square(Normal.y)));
+
+            Normal = Normalize(Normal);
+
+            v4 Color = { 255.0f* (0.5f*(Normal.x+1.0f)), 
+                255.0f*(0.5f*(Normal.y+1.0f)), 
+                127.0f*Normal.z, 
+                255.0f*Roughness };
+
+            *Pixel = (((uint32)(Color.a + 0.5f) << 24) |
+                      ((uint32)(Color.r + 0.5f) << 16) |
+                      ((uint32)(Color.g + 0.5f) << 8)  |
+                      ((uint32)(Color.b + 0.5f) << 0));
+
+        }
+        Row += Bitmap->Pitch;
+    }
+}
+
 #if 0
 internal void RequestGroundBuffers(world_position CenterP, rectangle3 Bounds)
 {
@@ -1250,7 +1289,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     Angle = 0.0f;
 #if 1
-    v2 XAxis = 300.0f*V2(Cos(Angle), Sin(Angle));
+    v2 XAxis = 150.0f*V2(Cos(Angle), Sin(Angle));
     v2 YAxis = Perp(XAxis);
 #else
     v2 XAxis = { 400.0f, 0 };
@@ -1267,20 +1306,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     v4 Color = V4(1.0f, 1.0f, 1.0f, 1.0f);
 #endif
     render_entry_coordinate_system *C = PushCoordinateSystem(RenderGroup, /*V2(Disp, 0) + */Origin - 0.5f*XAxis - 0.5f*YAxis, XAxis, YAxis, 
-                                                             Color, &GameState->Tree);
-    for(real32 X = 0.0f; 
-        X < 1.0f;
-        X += 0.25f)
-    {
-        for(real32 Y = 0.0f;
-            Y < 1.0f;
-            Y += 0.25f)
-        {
-            C->Points[PIndex++] = V2(X, Y);
-        }
-
-    }
-
+                                                             Color, &GameState->Tree,
+                                                             0, 0, 0, 0);
     RenderGroupToOutput(RenderGroup, DrawBuffer);
 
     EndSim(SimRegion, GameState);
