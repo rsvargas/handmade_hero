@@ -175,6 +175,7 @@ struct game_state
     hero_bitmaps HeroBitmaps[4];
 
     loaded_bitmap Tree;
+    loaded_bitmap TreeNormal;
     loaded_bitmap Sword;
     loaded_bitmap Stairwell;
     real32 MetersToPixels;

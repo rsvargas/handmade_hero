@@ -1,4 +1,12 @@
 
+inline v4 Unpack4x8(uint32 Packed)
+{
+    v4 Result = { (real32)((Packed>>16) & 0xFF),
+                  (real32)((Packed>>8) & 0xFF),
+                  (real32)((Packed>>0) & 0xFF),
+                  (real32)((Packed>>24) & 0xFF) };
+    return Result;
+}
 
 inline v4 SRGB255ToLinear1(v4 C)
 {
@@ -26,6 +34,21 @@ inline v4 Linear1ToSRGB255(v4 C)
     Result.a = One255 * C.a;
 
     return Result;
+}
+
+
+inline v4 UnscaledAndBiasNormal(v4 Normal)
+{
+    v4 Result;
+    real32 Inv255 = 1.0f / 255.0f;
+
+    Result.x = -1.0f + 2.0f * (Inv255*Normal.x);
+    Result.y = -1.0f + 2.0f * (Inv255*Normal.y);
+    Result.z = -1.0f + 2.0f * (Inv255*Normal.z);
+
+    Result.w = Inv255 * Normal.w;
+
+    return (Result);
 }
 
 internal void DrawRectangle(loaded_bitmap *Buffer,
@@ -77,21 +100,74 @@ internal void DrawRectangle(loaded_bitmap *Buffer,
 
 }
 
-inline v4 Unpack4x8(uint32 Packed)
+struct bilinear_sample
 {
-    v4 Result = { (real32)((Packed>>16) & 0xFF),
-        (real32)((Packed>>8) & 0xFF),
-        (real32)((Packed>>0) & 0xFF),
-        (real32)((Packed>>24) & 0xFF) };
+    uint32 A, B, C, D;
+};
+
+inline bilinear_sample BilinearSample(loaded_bitmap * Texture, int32 X, int32 Y)
+{
+    bilinear_sample Result;
+
+    uint8* TexelPtr = (((uint8*)Texture->Memory) + X * BITMAP_BYTES_PER_PIXEL +  Y * Texture->Pitch);
+    Result.A = *(uint32*)(TexelPtr);
+    Result.B = *(uint32*)(TexelPtr + BITMAP_BYTES_PER_PIXEL);
+    Result.C = *(uint32*)(TexelPtr + Texture->Pitch);
+    Result.D = *(uint32*)(TexelPtr + Texture->Pitch + BITMAP_BYTES_PER_PIXEL);
+
     return Result;
+
+}
+
+inline v4 SRGBBilinearBlend(bilinear_sample TexelSample, real32 fX, real32 fY)
+{
+    v4 TexelA = Unpack4x8(TexelSample.A);
+    v4 TexelB = Unpack4x8(TexelSample.B);
+    v4 TexelC = Unpack4x8(TexelSample.C);
+    v4 TexelD = Unpack4x8(TexelSample.D);
+
+
+    //NOTE: Go from sRGB to "linear" brightness space
+    TexelA = SRGB255ToLinear1(TexelA);
+    TexelB = SRGB255ToLinear1(TexelB);
+    TexelC = SRGB255ToLinear1(TexelC);
+    TexelD = SRGB255ToLinear1(TexelD);
+
+    //NOTE: Bilinear Blend
+    v4 Texel = Lerp(Lerp(TexelA, fX, TexelB),
+                    fY,
+                    Lerp(TexelC, fX, TexelD));
+
+    return Texel;
 }
 
 inline v3 SampleEnvironmentMap(v2 ScreenSpaceUV, v3 Normal, real32 Roughness, environment_map *Map)
 {
-    v3 Result = Normal;
+    uint32 LODIndex = (uint32)(Roughness*(real32)(ArrayCount(Map->LOD) - 1) + 0.5f);
+    Assert(LODIndex < ArrayCount(Map->LOD));
+
+    loaded_bitmap *LOD = Map->LOD[LODIndex];
+
+
+    //TODO: Do intersection ath to determine where we should be
+    real32 tX = 0.0f;
+    real32 tY = 0.0f;
+
+    int32 X = (int32)(tX);
+    int32 Y = (int32)(tY);
+
+    real32 fX = tX - (real32)X;
+    real32 fY = tY - (real32)Y;
+
+    Assert((X >= 0.0f) && (X<LOD->Width));
+    Assert((Y >= 0.0f) && (Y<LOD->Height));
+
+    bilinear_sample Sample=  BilinearSample(LOD, X, Y);
+    v3 Result = SRGBBilinearBlend(Sample, fX, fY).xyz;
 
     return Result;
 }
+
 
 internal void DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Color,
                                   loaded_bitmap *Texture, loaded_bitmap *NormalMap,
@@ -190,76 +266,58 @@ internal void DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2
                 Assert((TX >= 0.0f) && (TX<Texture->Width));
                 Assert((TY >= 0.0f) && (TY<Texture->Height));
 
-                uint8* TexelPtr = (((uint8*)Texture->Memory) + TX * BITMAP_BYTES_PER_PIXEL +  TY * Texture->Pitch);
-                uint32 TexelPtrA = *(uint32*)(TexelPtr);
-                uint32 TexelPtrB = *(uint32*)(TexelPtr + BITMAP_BYTES_PER_PIXEL);
-                uint32 TexelPtrC = *(uint32*)(TexelPtr + Texture->Pitch);
-                uint32 TexelPtrD = *(uint32*)(TexelPtr + Texture->Pitch + BITMAP_BYTES_PER_PIXEL );
-
-                v4 TexelA = Unpack4x8(TexelPtrA);
-                v4 TexelB = Unpack4x8(TexelPtrB);
-                v4 TexelC = Unpack4x8(TexelPtrC);
-                v4 TexelD = Unpack4x8(TexelPtrD);
-
-
-                //NOTE: Go from sRGB to "linear" brightness space
-                TexelA = SRGB255ToLinear1(TexelA);
-                TexelB = SRGB255ToLinear1(TexelB);
-                TexelC = SRGB255ToLinear1(TexelC);
-                TexelD = SRGB255ToLinear1(TexelD);
-
-                //NOTE: Bilinear Blend
-                v4 Texel = Lerp(Lerp(TexelA, fx, TexelB),
-                                fy,
-                                Lerp(TexelC, fx, TexelD));
+                bilinear_sample TexelSample = BilinearSample(Texture, TX, TY);
+                v4 Texel = SRGBBilinearBlend(TexelSample, fx, fy );
 
                 if(NormalMap)
                 {
-                    uint8* NormalPtr = (((uint8*)NormalMap->Memory) + TX * BITMAP_BYTES_PER_PIXEL +  TY * NormalMap->Pitch);
-                    uint32 NormalPtrA = *(uint32*)(NormalPtr);
-                    uint32 NormalPtrB = *(uint32*)(NormalPtr + BITMAP_BYTES_PER_PIXEL);
-                    uint32 NormalPtrC = *(uint32*)(NormalPtr + NormalMap->Pitch);
-                    uint32 NormalPtrD = *(uint32*)(NormalPtr + NormalMap->Pitch + BITMAP_BYTES_PER_PIXEL);
+                    bilinear_sample NormalSample = BilinearSample(NormalMap, TX, TY);
 
-                    v4 NormalA = Unpack4x8(NormalPtrA);
-                    v4 NormalB = Unpack4x8(NormalPtrB);
-                    v4 NormalC = Unpack4x8(NormalPtrC);
-                    v4 NormalD = Unpack4x8(NormalPtrD);
+                    v4 NormalA = Unpack4x8(NormalSample.A);
+                    v4 NormalB = Unpack4x8(NormalSample.B);
+                    v4 NormalC = Unpack4x8(NormalSample.C);
+                    v4 NormalD = Unpack4x8(NormalSample.D);
 
                     v4 Normal= Lerp(Lerp(NormalA, fx, NormalB),
                                     fy,
                                     Lerp(NormalC, fx, NormalD));
 
+                    Normal = UnscaledAndBiasNormal(Normal);
+                    //TODO: Do we really need to do this?
+                    Normal.xyz = Normalize(Normal.xyz);
 
                     environment_map *FarMap = 0;
-                    real32 tEnvMap = Normal.z;
+                    real32 tEnvMap = Normal.y;
                     real32 tFarMap = 0.0f;
-                    if(tEnvMap < 0.25f)
+                    if(tEnvMap < -0.5f)
                     {
                         FarMap = Bottom;
-                        tFarMap = 1.0f - (tEnvMap / 0.25f);
+                        tFarMap = 2.0f * (tEnvMap + 1.0f);
                     }
-                    else if(tEnvMap > 0.75f)
+                    else if(tEnvMap > 0.5f)
                     {
                         FarMap = Top;
-                        tFarMap = (1.0f - tEnvMap) / 0.25f;
+                        tFarMap = 2.0f * (tEnvMap - 0.5f);
                     }
                     else
                     {
                     }
 
-                    v3 LightColor= SampleEnvironmentMap(ScreenSpaceUV, Normal.xyz, Normal.w, Middle);
+                    v3 LightColor= { 0, 0, 0 };// SampleEnvironmentMap(ScreenSpaceUV, Normal.xyz, Normal.w, Middle);
                     if(FarMap)
                     {
                         v3 FarMapColor = SampleEnvironmentMap(ScreenSpaceUV, Normal.xyz, Normal.w, FarMap);
                         LightColor = Lerp(LightColor, tFarMap, FarMapColor);
                     }
 
-                    Texel.rgb = Hadamard(Texel.rgb, LightColor);
+                    Texel.rgb = Texel.rgb + Texel.a * LightColor;
                 }
 
 
                 Texel = Hadamard(Texel, Color);
+                Texel.r = Clamp01(Texel.r);
+                Texel.g = Clamp01(Texel.g);
+                Texel.b = Clamp01(Texel.b);
 
 
                 v4 Dest = { (real32)((*Pixel >> 16) & 0xFF),
