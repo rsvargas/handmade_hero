@@ -461,7 +461,6 @@ internal void MoveEntity(game_state *GameState, sim_region * SimRegion, sim_enti
         ddP += V3(0, 0, -9.8f); //NOTE: Gravity!
     }
 
-    v3 OldPlayerP = Entity->P;
     //newPos = 1/2*accel*dTime^2 + vel*dTime + pos
     v3 PlayerDelta = (0.5f * ddP * Square(dt) + Entity->dP * dt);
 
@@ -469,8 +468,6 @@ internal void MoveEntity(game_state *GameState, sim_region * SimRegion, sim_enti
     Entity->dP = ddP*dt + Entity->dP;
 
     Assert(LengthSq(Entity->dP) <= Square(SimRegion->MaxEntityVelocity));
-
-    v3 NewPlayerP = OldPlayerP + PlayerDelta;
 
     real32 DistanceRemaining = Entity->DistanceLimit;
     if(DistanceRemaining == 0.0f)
