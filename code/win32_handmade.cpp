@@ -503,7 +503,7 @@ internal void Win32ResizeDIBSection(win32_offscreen_buffer& Buffer, int Width, i
 
     Buffer.Info.bmiHeader.biSize = sizeof(Buffer.Info.bmiHeader);
     Buffer.Info.bmiHeader.biWidth = Buffer.Width;
-    Buffer.Info.bmiHeader.biHeight = -Buffer.Height; //negative is top-down, positive is bottom-up
+    Buffer.Info.bmiHeader.biHeight = Buffer.Height; //negative is top-down, positive is bottom-up
     Buffer.Info.bmiHeader.biPlanes = 1;
     Buffer.Info.bmiHeader.biBitCount = 32;
     Buffer.Info.bmiHeader.biCompression = BI_RGB;
