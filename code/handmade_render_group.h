@@ -11,6 +11,7 @@ struct loaded_bitmap
 struct environment_map
 {
     loaded_bitmap LOD[4];
+    real32 Pz;
 };
 
 struct render_basis
