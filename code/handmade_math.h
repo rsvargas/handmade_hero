@@ -54,11 +54,24 @@ union v4
         };
         real32 a;
     };
-    //struct
-    //{
-    //    v3 rgb;
-    //    real32 a;
-    //};
+    struct
+    {
+        v2 xy;
+        real32 Ignored0_;
+        real32 Ignored1_;
+    };
+    struct
+    {
+        real32 Ignored2_;
+        v2 yz;
+        real32 Ignored3_;
+    };
+    struct
+    {
+        real32 Ignored4_;
+        real32 Ignored5_;
+        v2 zw;
+    };
     real32 E[4];
 };
 

@@ -953,7 +953,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         GameState->TestDiffuse = MakeEmptyBitmap(&TranState->TranArena, 256, 256, false);
         DrawRectangle(&GameState->TestDiffuse, V2(0, 0), V2i(GameState->TestDiffuse.Width, GameState->TestDiffuse.Height), V4(0.5f, 0.5f, 0.5f, 1.0f));
         GameState->TestNormal= MakeEmptyBitmap(&TranState->TranArena, GameState->TestDiffuse.Width, GameState->TestDiffuse.Height, false);
-        MakeSphereNormalMap(&GameState->TestNormal, 0.0f, 0.0f, 1.0f);
+        MakeSphereNormalMap(&GameState->TestNormal, 0.0f);
         //MakePyramidNormalMap(&GameState->TestNormal, 0.0f);
 
         TranState->EnvMapWidth = 512;
@@ -1379,7 +1379,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     GameState->Time += Input->dtForFrame;
     real32 Angle = 0.2f*GameState->Time;
-    real32 Disp = 150.0f*Cos(5.0f*Angle);
+    v2 Disp = { 100.0f*Cos(5.0f*Angle),
+        100.0f*Sin(3.0f*Angle) };
 
 
     v4 MapColor[] = {
@@ -1435,7 +1436,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 #else
     v4 Color = V4(1.0f, 1.0f, 1.0f, 1.0f);
 #endif
-    render_entry_coordinate_system *C = CoordinateSystem(RenderGroup, V2(Disp, 0) + Origin - 0.5f*XAxis - 0.5f*YAxis, XAxis, YAxis, 
+    render_entry_coordinate_system *C = CoordinateSystem(RenderGroup, Disp + Origin - 0.5f*XAxis - 0.5f*YAxis, XAxis, YAxis, 
                                                              Color, 
                                                              &GameState->TestDiffuse, 
                                                              &GameState->TestNormal,
