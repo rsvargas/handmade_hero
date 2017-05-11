@@ -8,18 +8,24 @@
         when viewer on screen).
 
     3) Unless otherwise specified, all inputs to the renderer are in world 
-       coorinate ("meters"), NOT pixels. Anuthing that is in pixel values
+       coordinate ("meters"), NOT pixels. Anuthing that is in pixel values
        will be explicitly marked as such.
 
     4) Z is a special coordinate because it is broken up into discrete slices,
        and the renderer actually understands these slices (potentially).
 
        //TODO: ZHANDLING
+
+    5) All color values secified to the rendere as V4's are in 
+       NON-premiltiplied alpha.
+
 */
 
 
 struct loaded_bitmap
 {
+    v2 Align;
+
     int32 Width;
     int32 Height;
     int32 Pitch;
@@ -40,9 +46,7 @@ struct render_basis
 struct render_entity_basis
 {
     render_basis *Basis;
-    v2 Offset;
-    real32 OffsetZ;
-    real32 EntityZC;
+    v3 Offset;
 };
 
 enum render_group_entry_type
@@ -51,7 +55,6 @@ enum render_group_entry_type
     RenderGroupEntryType_render_entry_bitmap,
     RenderGroupEntryType_render_entry_rectangle,
     RenderGroupEntryType_render_entry_coordinate_system,
-    RenderGroupEntryType_render_entry_saturation,
 };
 
 struct render_group_entry_header
@@ -62,11 +65,6 @@ struct render_group_entry_header
 struct render_entry_clear
 {
     v4 Color;
-};
-
-struct render_entry_saturation
-{
-    real32 Level;
 };
 
 struct render_entry_bitmap
@@ -108,3 +106,13 @@ struct render_group
     uint8 *PushBufferBase;
 };
 
+// NOTE: Renderer API
+#if 0
+inline void PushBitmap(render_group *Group, loaded_bitmap *Bitmap, v2 Offset, real32 OffsetZ,
+                       v4 Color = V4(1, 1, 1, 1));
+inline void PushRect(render_group *Group, v2 Offset, real32 OffsetZ,
+                     v2 Dim, v4 Color);
+inline void PushRectOutline(render_group *Group, v2 Offset, real32 OffsetZ,
+                            v2 Dim, v4 Color);
+inline void Clear(render_group *Group, v4 Color);
+#endif
