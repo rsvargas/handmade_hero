@@ -12,7 +12,9 @@
        will be explicitly marked as such.
 
     4) Z is a special coordinate because it is broken up into discrete slices,
-       and the renderer actually understands these slices (potentially).
+       and the renderer actually understands these slices. Z slices are what 
+       control the _scaling_ of thinfs, whereas Z offsets inside a slice are
+       what controle Y offsetting.
 
        //TODO: ZHANDLING
 
@@ -98,6 +100,8 @@ struct render_entry_coordinate_system
 
 struct render_group
 {
+    real32 GlobalAlpha;
+
     render_basis *DefaultBasis;
     real32 MetersToPixels;
 

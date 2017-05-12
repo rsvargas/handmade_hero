@@ -141,7 +141,7 @@ internal loaded_bitmap DEBUGLoadBMP(thread_context* Thread, debug_platform_read_
 
 #if 0
     Result.Memory = (uint32*)((uint8*)Result.Memory + Result.Pitch*(Result.Height-1));
-    Result.Pitch = -Result.Width * BITMAP_BYTES_PER_PIXEL;
+    Result.Pitch = -Result.Pitch;
 #endif
 
     return Result;
@@ -303,7 +303,7 @@ internal add_low_entity_result AddFamiliar(game_state* GameState, int32 AbsTileX
     return Entity;
 }
 
-internal void DrawHitpoints(sim_entity *Entity, render_group *RenderGroup)
+internal void DrawHitpoints(sim_entity *Entity, render_group *PieceGroup)
 {
     if(Entity->HitPointMax >= 1)
     {
@@ -322,7 +322,7 @@ internal void DrawHitpoints(sim_entity *Entity, render_group *RenderGroup)
                 Color = V4(0.2f, 0.2f, 0.2f, 1.0f);
             }
 
-            PushRect(RenderGroup, V3(HitP, 0), HealthDim, Color);
+            PushRect(PieceGroup, V3(HitP, 0), HealthDim, Color);
             HitP += dHitP;
         }
     }
@@ -441,17 +441,14 @@ internal void FillGroundChunk(transient_state *TranState, game_state *GameState,
 
     GroundBuffer->P = *ChunkP;
 
-
     real32 Width = (real32)Buffer->Width;
     real32 Height = (real32)Buffer->Height;
 
-
-
-    for(int ChunkOffsetY = -1;
+    for(int32 ChunkOffsetY = -1;
         ChunkOffsetY <= 1;
         ++ChunkOffsetY)
     {
-        for(int ChunkOffsetX = -1;
+        for(int32 ChunkOffsetX = -1;
             ChunkOffsetX <= 1;
             ++ChunkOffsetX)
         {
@@ -479,18 +476,18 @@ internal void FillGroundChunk(transient_state *TranState, game_state *GameState,
                 }
 
                 v2 BitmapCenter = 0.5f*V2i(Stamp->Width, Stamp->Height);
-                v2 Offset = { Width*RandomUnilateral(&Series),Height*RandomUnilateral(&Series) };
+                v2 Offset = { Width*RandomUnilateral(&Series), Height*RandomUnilateral(&Series) };
                 v2 P = Center + Offset - BitmapCenter;
                 PushBitmap(RenderGroup, Stamp, V3(P, 0.0f));
             }
         }
     }
 
-    for(int ChunkOffsetY = -1;
+    for(int32 ChunkOffsetY = -1;
         ChunkOffsetY <= 1;
         ++ChunkOffsetY)
     {
-        for(int ChunkOffsetX = -1;
+        for(int32 ChunkOffsetX = -1;
             ChunkOffsetX <= 1;
             ++ChunkOffsetX)
         {
@@ -515,6 +512,7 @@ internal void FillGroundChunk(transient_state *TranState, game_state *GameState,
             }
         }
     }
+
     RenderGroupToOutput(RenderGroup, Buffer);
     EndTemporaryMemory(GroundMemory);
 }
@@ -530,12 +528,12 @@ internal void ClearBitmap(loaded_bitmap *Bitmap)
 
 internal loaded_bitmap MakeEmptyBitmap(memory_arena *Arena, int32 Width, int32 Height, bool32 ClearToZero = true)
 {
-    loaded_bitmap Result;
+    loaded_bitmap Result = {};
     Result.Width = Width;
     Result.Height = Height;
     Result.Pitch = Result.Width * BITMAP_BYTES_PER_PIXEL;
     int32 TotalBitmapSize = Width * Height * BITMAP_BYTES_PER_PIXEL;
-    Result.Memory = (uint32*)PushSize_(Arena, TotalBitmapSize);
+    Result.Memory = (uint32*)PushSize(Arena, TotalBitmapSize);
     if(ClearToZero)
     {
         ClearBitmap(&Result);
@@ -859,8 +857,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         for(uint32 ScreenIndex = 0; ScreenIndex < 2000; ++ScreenIndex)
         {
-            //uint32 DoorDirection = RandomChoice(&Series, (DoorUp || DoorDown) ? 2 : 3);
+#if 1
+            uint32 DoorDirection = RandomChoice(&Series, (DoorUp || DoorDown) ? 2 : 3);
+#else
             uint32 DoorDirection = RandomChoice(&Series, 2);
+#endif
 
             bool32 CreatedZDoor = false;
             if(DoorDirection == 2)
@@ -1015,7 +1016,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             ++GroundBufferIndex)
         {
             ground_buffer *GroundBuffer = TranState->GroundBuffers + GroundBufferIndex;
-            GroundBuffer->Bitmap = MakeEmptyBitmap(&TranState->TranArena, GroundBufferWidth, GroundBufferHeight);
+            GroundBuffer->Bitmap = MakeEmptyBitmap(&TranState->TranArena, GroundBufferWidth, GroundBufferHeight, false);
             GroundBuffer->P = NullPosition();
 
         }
@@ -1127,6 +1128,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             }
 
             ConHero->dSword = {};
+#if 0
             if(Controller->ActionUp.EndedDown)
             {
                 ConHero->dSword = V2(0, 1);
@@ -1143,6 +1145,19 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             {
                 ConHero->dSword = V2(1, 0);
             }
+#else
+            real32 ZoomRate = 0.0f;
+            if(Controller->ActionUp.EndedDown)
+            {
+                ZoomRate = 1.0f;
+            }
+            if(Controller->ActionDown.EndedDown)
+            {
+                ZoomRate = -1.0f;
+            }
+            GameState->ZOffset += ZoomRate * Input->dtForFrame;
+    
+#endif
 
 
         }
@@ -1156,6 +1171,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 
     render_group *RenderGroup = AllocateRenderGroup(&TranState->TranArena, MEGABYTES(4), GameState->MetersToPixels);
+
+    RenderGroup->GlobalAlpha = 1.0f;//Clamp01(1.0f - GameState->ZOffset);
 
     loaded_bitmap DrawBuffer_ = {};
     loaded_bitmap *DrawBuffer = &DrawBuffer_;
@@ -1174,7 +1191,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     rectangle3 CameraBoundsInMeters = RectCenterDim(V3(0, 0, 0),
                                                     V3(ScreenWidthInMeters, ScreenHeightInMeters, 0.0f));
 
-
+#if 0
     for(uint32 GroundBufferIndex = 0;
         GroundBufferIndex < TranState->GroundBufferCount;
         ++GroundBufferIndex)
@@ -1184,8 +1201,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         {
             loaded_bitmap *Bitmap = &GroundBuffer->Bitmap;
             v3 Delta = Subtract(GameState->World, &GroundBuffer->P, &GameState->CameraP);
-            Bitmap->Align = V2i(Bitmap->Width/2, Bitmap->Height/2);
-            PushBitmap(RenderGroup, Bitmap, Delta );
+            Bitmap->Align = 0.5f*V2i(Bitmap->Width, Bitmap->Height);
+
+            render_basis *Basis = PushStruct(&TranState->TranArena, render_basis);
+            RenderGroup->DefaultBasis = Basis;
+            Basis->P = Delta + V3(0, 0, GameState->ZOffset);
+            PushBitmap(RenderGroup, Bitmap, V3(0, 0, 0) );
+        }
+        else
+        {
+            int i=0;
         }
     }
     
@@ -1207,51 +1232,55 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     ChunkX <= MaxChunkP.ChunkX;
                     ++ChunkX)
                 {
-                    world_position ChunkCenterP = CenteredChunkPoint(ChunkX, ChunkY, ChunkZ);
-                    v3 RelP = Subtract(World, &ChunkCenterP, &GameState->CameraP);
-
-                    bool32 Found = false;
-                    real32 FurthestBufferLengthSq = 0.0f;
-                    ground_buffer *FurthestBuffer = 0;
-                    for(uint32 GroundBufferIndex = 0;
-                        GroundBufferIndex < TranState->GroundBufferCount;
-                        ++GroundBufferIndex)
+//                    world_chunk *Chunk = GetWorldChunk(World, ChunkX, ChunkY, ChunkZ);
+//                    if(Chunk)
                     {
-                        ground_buffer *GroundBuffer = TranState->GroundBuffers + GroundBufferIndex;
-                        if(AreInSameChunk(World, &GroundBuffer->P, &ChunkCenterP))
+                        world_position ChunkCenterP = CenteredChunkPoint(ChunkX, ChunkY, ChunkZ);
+                        v3 RelP = Subtract(World, &ChunkCenterP, &GameState->CameraP);
+
+                        bool32 Found = false;
+                        real32 FurthestBufferLengthSq = 0.0f;
+                        ground_buffer *FurthestBuffer = 0;
+                        for(uint32 GroundBufferIndex = 0;
+                            GroundBufferIndex < TranState->GroundBufferCount;
+                            ++GroundBufferIndex)
                         {
-                            FurthestBuffer = 0;
-                            break;
-                        }
-                        else if(IsValid(GroundBuffer->P))
-                        {
-                            v3 BufferRelP = Subtract(World, &GroundBuffer->P, &GameState->CameraP);
-                            real32 BufferLengthSq = LengthSq(BufferRelP.xy);
-                            if(FurthestBufferLengthSq < BufferLengthSq)
+                            ground_buffer *GroundBuffer = TranState->GroundBuffers + GroundBufferIndex;
+                            if(AreInSameChunk(World, &GroundBuffer->P, &ChunkCenterP))
                             {
-                                FurthestBufferLengthSq = BufferLengthSq;
+                                FurthestBuffer = 0;
+                                break;
+                            }
+                            else if(IsValid(GroundBuffer->P))
+                            {
+                                v3 BufferRelP = Subtract(World, &GroundBuffer->P, &GameState->CameraP);
+                                real32 BufferLengthSq = LengthSq(BufferRelP.xy);
+                                if(FurthestBufferLengthSq < BufferLengthSq)
+                                {
+                                    FurthestBufferLengthSq = BufferLengthSq;
+                                    FurthestBuffer = GroundBuffer;
+                                }
+                            }
+                            else
+                            {
+                                FurthestBufferLengthSq = Real32Maximum;
                                 FurthestBuffer = GroundBuffer;
                             }
                         }
-                        else
+
+                        if(FurthestBuffer)
                         {
-                            FurthestBufferLengthSq = Real32Maximum;
-                            FurthestBuffer = GroundBuffer;
+                            FillGroundChunk(TranState, GameState, FurthestBuffer, &ChunkCenterP);
                         }
+    #if 0
+                        PushRectOutline(RenderGroup, RelP, World->ChunkDimInMeters.xy, V4(1.0f, 1.0f, 0.0f, 1.0f));
+    #endif
                     }
-
-                    if(FurthestBuffer)
-                    {
-                        FillGroundChunk(TranState, GameState, FurthestBuffer, &ChunkCenterP);
-                    }
-
-#if 0
-                    PushRectOutline(RenderGroup, RelP.xy, 0.0f, World->ChunkDimInMeters.xy, V4(1.0f, 1.0f, 0.0f, 1.0f));
-#endif
                 }
             }
         }
     }
+#endif
 
     v3 SimBoundsExpansion = V3(15.0f, 15.0f, 15.0f);
     rectangle3 SimBounds = AddRadiusTo(CameraBoundsInMeters, SimBoundsExpansion);
@@ -1430,7 +1459,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 {
                     sim_entity_collision_volume *Volume = Entity->Collision->Volumes + VolumeIndex;
                     PushRectOutline(RenderGroup, Volume->OffsetP - V3(0, 0, 0.5f*Volume->Dim.z), Volume->Dim.xy, V4(0, 0.5f, 1, 1));
-
                 }
             } break;
 
@@ -1446,12 +1474,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
             }
 
-            Basis->P = GetEntityGroundPoint(Entity);
+            Basis->P = GetEntityGroundPoint(Entity) + V3(0, 0, GameState->ZOffset);
 
         }
     }
 
-#if 1
+#if 0
     GameState->Time += Input->dtForFrame;
 
     v4 MapColor[] = {

@@ -303,12 +303,12 @@ internal void DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2
                 v2 ScreenSpaceUV = { InvWidthMax*(real32)X, FixedCastY };
                 real32 ZDiff = PixelsToMeters*((real32)Y - OriginY);
 #else
-                v2 ScreenSpaceUV = { InvWidthMax*(real32)X, InvWidthMax*(real32)Y };
+                v2 ScreenSpaceUV = { InvWidthMax*(real32)X, InvHeightMax*(real32)Y };
                 real32 ZDiff = 0.0f;
 #endif
 
-                real32 U = InvXAxisLengthSq * Inner(d, XAxis);
-                real32 V = InvYAxisLengthSq * Inner(d, YAxis);
+                real32 U = Clamp01(InvXAxisLengthSq * Inner(d, XAxis));
+                real32 V = Clamp01(InvYAxisLengthSq * Inner(d, YAxis));
 
 #if 0
                 Assert((U >= 0.0f) && (U<=1.0f));
@@ -433,44 +433,6 @@ internal void DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2
 
 }
 
-internal void ChangeSaturation(loaded_bitmap *Buffer, real32 Level)
-{
-    uint8* DestRow = ((uint8*)Buffer->Memory);
-    for(int Y = 0;
-        Y < Buffer->Height;
-        ++Y)
-    {
-        uint32 *Dest = (uint32*)DestRow;
-        for(int X = 0;
-            X < Buffer->Width; 
-            ++X)
-        {
-            v4 D = { (real32)((*Dest >> 16) & 0xFF),
-                (real32)((*Dest >> 8) & 0xFF),
-                (real32)((*Dest >> 0) & 0xFF),
-                (real32)((*Dest >> 24) & 0xFF) };
-
-            D = SRGB255ToLinear1(D);
-
-            real32 Avg = (1.0f/3.0f) * (D.r + D.g + D.b);
-            v3 Delta = V3(D.r - Avg, D.g - Avg, D.b - Avg);
-
-
-            v4 Result = V4(V3(Avg, Avg, Avg) + Delta*Level, D.a);;
-
-            Result = Linear1ToSRGB255(Result);
-
-            *Dest = (((uint32)(Result.a + 0.5f) << 24) |
-                ((uint32)(Result.r + 0.5f) << 16) |
-                     ((uint32)(Result.g + 0.5f) << 8)  |
-                     ((uint32)(Result.b + 0.5f) << 0));
-
-            ++Dest;
-        }
-        DestRow += Buffer->Pitch;
-    }
-}
-
 
 internal void DrawBitmap(loaded_bitmap *Buffer, loaded_bitmap* Bitmap,
                          real32 RealX, real32 RealY, real32 CAlpha= 1.0f)
@@ -522,7 +484,6 @@ internal void DrawBitmap(loaded_bitmap *Buffer, loaded_bitmap* Bitmap,
             Texel = SRGB255ToLinear1(Texel);
             Texel *= CAlpha;
 
-           
             v4 D = { (real32)((*Dest >> 16) & 0xFF),
                      (real32)((*Dest >> 8) & 0xFF),
                      (real32)((*Dest >> 0) & 0xFF),
@@ -544,6 +505,44 @@ internal void DrawBitmap(loaded_bitmap *Buffer, loaded_bitmap* Bitmap,
         }
         DestRow += Buffer->Pitch;
         SourceRow += Bitmap->Pitch;
+    }
+}
+
+internal void ChangeSaturation(loaded_bitmap *Buffer, real32 Level)
+{
+    uint8 *DestRow = (uint8 *)Buffer->Memory;
+    for(int Y = 0;
+        Y < Buffer->Height;
+        ++Y)
+    {
+        uint32 *Dest = (uint32 *)DestRow;
+        for(int X = 0;
+            X < Buffer->Width;
+            ++X)
+        {
+            v4 D = {(real32)((*Dest >> 16) & 0xFF),
+                    (real32)((*Dest >> 8) & 0xFF),
+                    (real32)((*Dest >> 0) & 0xFF),
+                    (real32)((*Dest >> 24) & 0xFF)};
+
+            D = SRGB255ToLinear1(D);
+
+            real32 Avg = (1.0f / 3.0f) * (D.r + D.g + D.b);
+            v3 Delta = V3(D.r - Avg, D.g - Avg, D.b - Avg);
+            
+            v4 Result = V4(V3(Avg, Avg, Avg) + Level*Delta, D.a);
+
+            Result = Linear1ToSRGB255(Result);
+
+            *Dest = (((uint32)(Result.a + 0.5f) << 24) |
+                     ((uint32)(Result.r + 0.5f) << 16) |
+                     ((uint32)(Result.g + 0.5f) << 8) |
+                     ((uint32)(Result.b + 0.5f) << 0));
+            
+            ++Dest;
+        }
+
+        DestRow += Buffer->Pitch;
     }
 }
 
@@ -636,16 +635,25 @@ internal void DrawMatte(loaded_bitmap *Buffer, loaded_bitmap* Bitmap,
     }
 }
 
-inline v2 GetRenderEntityBasisP(render_group *RenderGroup, render_entity_basis *EntityBasis, v2 ScreenCenter)
+struct entity_basis_p_result
 {
-    //TODO: ZHANDLING
+    v2 P;
+    real32 Scale;
+};
+
+inline entity_basis_p_result  GetRenderEntityBasisP(render_group *RenderGroup, render_entity_basis *EntityBasis, v2 ScreenCenter)
+{
+    entity_basis_p_result Result;
 
     v3 EntityBaseP = RenderGroup->MetersToPixels * EntityBasis->Basis->P;
-    real32 ZFudge = (1.0f + 0.1f*EntityBaseP.z);
-    v2 EntityGroundPoint = ScreenCenter + ZFudge * EntityBaseP.xy + EntityBasis->Offset.xy;
-    v2 Center = EntityGroundPoint + V2(0, EntityBaseP.z + EntityBasis->Offset.z);
+    real32 ZFudge = (1.0f + 0.0015f*EntityBaseP.z);
+    v2 EntityGroundPoint = ScreenCenter + ZFudge * (EntityBaseP.xy + EntityBasis->Offset.xy);
+    v2 Center = EntityGroundPoint;// + V2(0, EntityBaseP.z + EntityBasis->Offset.z);
 
-    return Center;
+    Result.P = Center;
+    Result.Scale = ZFudge;
+
+    return Result;
 }
 
 
@@ -653,6 +661,8 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
 {
     v2 ScreenCenter = { 0.5f*(real32)OutputTarget->Width,
         0.5f*(real32)OutputTarget->Height };
+
+    real32 PixelsToMeters = 1.0f / RenderGroup->MetersToPixels;
 
     for(uint32 BaseAddress = 0;
         BaseAddress < RenderGroup->PushBufferSize;
@@ -680,10 +690,16 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
         {
             render_entry_bitmap *Entry = (render_entry_bitmap*)Data;
 
-            v2 P = GetRenderEntityBasisP(RenderGroup, &Entry->EntityBasis, ScreenCenter);
-
+            entity_basis_p_result Basis = GetRenderEntityBasisP(RenderGroup, &Entry->EntityBasis, ScreenCenter);
             Assert(Entry->Bitmap)
+#if 0
             DrawBitmap(OutputTarget, Entry->Bitmap, P.x, P.y, Entry->Color.a);
+#else
+            DrawRectangleSlowly(OutputTarget, Basis.P, 
+                Basis.Scale * V2i(Entry->Bitmap->Width, 0), 
+                Basis.Scale * V2i(0, Entry->Bitmap->Height), Entry->Color,
+                Entry->Bitmap, 0, 0, 0, 0, PixelsToMeters); 
+#endif
             BaseAddress += sizeof(*Entry);
         }break;
 
@@ -691,8 +707,8 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
         {
             render_entry_rectangle *Entry = (render_entry_rectangle*)Data;
 
-            v2 P = GetRenderEntityBasisP(RenderGroup, &Entry->EntityBasis, ScreenCenter);
-            DrawRectangle(OutputTarget, P, P + Entry->Dim, Entry->Color);
+            entity_basis_p_result Basis = GetRenderEntityBasisP(RenderGroup, &Entry->EntityBasis, ScreenCenter);
+            DrawRectangle(OutputTarget, Basis.P, Basis.P + Basis.Scale * Entry->Dim, Entry->Color);
 
             BaseAddress += sizeof(*Entry);
         }break;
@@ -712,7 +728,7 @@ internal void RenderGroupToOutput(render_group* RenderGroup, loaded_bitmap* Outp
                                 Entry->Top,
                                 Entry->Middle,
                                 Entry->Bottom,
-                                1.0f / RenderGroup->MetersToPixels);
+                                PixelsToMeters);
 
             v4 Color = { 1, 1, 0, 1 };
             v2 Dim = { 2, 2 };
@@ -761,6 +777,8 @@ internal render_group * AllocateRenderGroup(memory_arena *Arena, uint32 MaxPushB
     Result->MaxPushBufferSize = MaxPushBufferSize;
     Result->PushBufferSize = 0;
 
+    Result->GlobalAlpha = 1.0f;
+
     return Result;
 }
 
@@ -796,7 +814,7 @@ inline void PushBitmap(render_group *Group, loaded_bitmap *Bitmap, v3 Offset,
         Piece->EntityBasis.Basis = Group->DefaultBasis;
         Piece->Bitmap = Bitmap;
         Piece->EntityBasis.Offset = Group->MetersToPixels*Offset - V3(Bitmap->Align, 0);
-        Piece->Color = Color;
+        Piece->Color = Group->GlobalAlpha * Color;
     }
 }
 
