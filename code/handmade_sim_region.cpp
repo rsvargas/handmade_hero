@@ -147,9 +147,11 @@ internal sim_region *BeginSim(memory_arena *SimArena, game_state* GameState,
 
     SimRegion->World = World;
     SimRegion->Origin = Origin;
-    SimRegion->UpdatableBounds = AddRadiusTo(Bounds, V3(SimRegion->MaxEntityRadius, 
-        SimRegion->MaxEntityRadius, SimRegion->MaxEntityRadius));
-    SimRegion->Bounds = AddRadiusTo(SimRegion->UpdatableBounds, V3(UpdateSafetyMargin, UpdateSafetyMargin, UpdateSafetyMarginZ));
+    SimRegion->UpdatableBounds = AddRadiusTo(Bounds, V3(SimRegion->MaxEntityRadius,
+                                                        SimRegion->MaxEntityRadius, 
+                                                        0.0f));
+    SimRegion->Bounds = AddRadiusTo(SimRegion->UpdatableBounds,
+                                    V3(UpdateSafetyMargin, UpdateSafetyMargin, UpdateSafetyMarginZ));
 
     SimRegion->MaxEntityCount = 4096;
     SimRegion->EntityCount = 0;
@@ -159,23 +161,23 @@ internal sim_region *BeginSim(memory_arena *SimArena, game_state* GameState,
     world_position MaxChunkP = MapIntoChunkSpace(World, SimRegion->Origin, GetMaxCorner(SimRegion->Bounds));
 
     for (int32 ChunkZ = MinChunkP.ChunkZ;
-    ChunkZ <= MaxChunkP.ChunkZ;
+        ChunkZ <= MaxChunkP.ChunkZ;
         ++ChunkZ)
     {
 
         for (int32 ChunkY = MinChunkP.ChunkY;
-        ChunkY <= MaxChunkP.ChunkY;
+            ChunkY <= MaxChunkP.ChunkY;
             ++ChunkY)
         {
             for (int32 ChunkX = MinChunkP.ChunkX;
-            ChunkX <= MaxChunkP.ChunkX;
+                ChunkX <= MaxChunkP.ChunkX;
                 ++ChunkX)
             {
                 world_chunk *Chunk = GetWorldChunk(World, ChunkX, ChunkY, ChunkZ);
                 if (Chunk)
                 {
                     for (world_entity_block *Block = &Chunk->FirstBlock;
-                    Block;
+                        Block;
                         Block = Block->Next)
                     {
                         for (uint32 EntityIndexIndex = 0;
@@ -247,9 +249,9 @@ internal void EndSim(sim_region *Region, game_state *GameState)
                 NewCameraP.AbsTileY -= 9;
             }
 #else
-            real32 CamZOffset = NewCameraP.Offset_.z;
+            //real32 CamZOffset = NewCameraP.Offset_.z;
             NewCameraP = Stored->P;
-            NewCameraP.Offset_.z = CamZOffset;
+            //NewCameraP.Offset_.z = CamZOffset;
 #endif
 
             GameState->CameraP = NewCameraP;
