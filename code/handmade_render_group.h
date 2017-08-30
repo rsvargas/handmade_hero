@@ -24,7 +24,6 @@
 
 */
 
-
 struct loaded_bitmap
 {
     v2 AlignPercentage;
@@ -33,7 +32,7 @@ struct loaded_bitmap
     int32 Width;
     int32 Height;
     int32 Pitch;
-    uint32* Memory;
+    uint32 *Memory;
 };
 
 struct environment_map
@@ -101,8 +100,21 @@ struct render_entry_coordinate_system
     environment_map *Bottom;
 };
 
+struct render_group_camera
+{
+    //NOTE: Camera parameters
+    real32 FocalLength;
+    real32 DistanceAboveTarget;
+};
+
 struct render_group
 {
+    render_group_camera GameCamera;
+    render_group_camera RenderCamera;
+
+    real32 MetersToPixels; // NOTE: This translates meters _on the monitor_  into pixels _on the monitor_
+    v2 MonitorHalfDimInMeters;
+
     real32 GlobalAlpha;
 
     render_basis *DefaultBasis;
@@ -111,14 +123,3 @@ struct render_group
     uint32 PushBufferSize;
     uint8 *PushBufferBase;
 };
-
-// NOTE: Renderer API
-#if 0
-inline void PushBitmap(render_group *Group, loaded_bitmap *Bitmap, v2 Offset, real32 OffsetZ,
-                       v4 Color = V4(1, 1, 1, 1));
-inline void PushRect(render_group *Group, v2 Offset, real32 OffsetZ,
-                     v2 Dim, v4 Color);
-inline void PushRectOutline(render_group *Group, v2 Offset, real32 OffsetZ,
-                            v2 Dim, v4 Color);
-inline void Clear(render_group *Group, v4 Color);
-#endif
