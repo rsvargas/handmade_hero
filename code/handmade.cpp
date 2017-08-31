@@ -72,7 +72,7 @@ internal v2 TopDownAlign(loaded_bitmap *Bitmap, v2 Align)
 }
 
 internal loaded_bitmap DEBUGLoadBMP(thread_context *Thread, debug_platform_read_entire_file *ReadEntireFile,
-                                    char *FileName, int32 AlignX = 0, int32 TopDownAlignY = 0)
+                                    char *FileName, int32 AlignX, int32 TopDownAlignY)
 {
     loaded_bitmap Result = {};
 
@@ -147,6 +147,14 @@ internal loaded_bitmap DEBUGLoadBMP(thread_context *Thread, debug_platform_read_
     Result.Pitch = -Result.Pitch;
 #endif
 
+    return Result;
+}
+
+internal loaded_bitmap DEBUGLoadBMP(thread_context *Thread, debug_platform_read_entire_file *ReadEntireFile,
+                                    char *FileName)
+{
+    loaded_bitmap Result = DEBUGLoadBMP(Thread, ReadEntireFile, FileName, 0, 0);
+    Result.AlignPercentage = V2(0.5f, 0.5f);
     return Result;
 }
 
@@ -426,18 +434,27 @@ sim_entity_collision_volume_group *MakeNullCollision(game_state *GameState)
 internal void FillGroundChunk(transient_state *TranState, game_state *GameState,
                               ground_buffer *GroundBuffer, world_position *ChunkP)
 {
-    //TODO: How do we want to control out gorund chunk resolution?
     temporary_memory GroundMemory = BeginTemporaryMemory(&TranState->TranArena);
-    render_group *RenderGroup = AllocateRenderGroup(&TranState->TranArena, MEGABYTES(4), 1920, 1080);
 
+    //TODO: Need to be able to set an orthographic display mode here
     loaded_bitmap *Buffer = &GroundBuffer->Bitmap;
+    Buffer->AlignPercentage = V2(0.5f, 0.5f);
+    Buffer->WidthOverHeight = 1.0f;
 
-    Clear(RenderGroup, V4(1.0f, 1.0f, 0.0f, 1.0f));
+    render_group *RenderGroup = AllocateRenderGroup(&TranState->TranArena, MEGABYTES(4),
+                                                    Buffer->Width, Buffer->Height);
+
+    Clear(RenderGroup, V4(1.0f, 0.0f, 1.0f, 1.0f));
 
     GroundBuffer->P = *ChunkP;
 
-    real32 Width = (real32)Buffer->Width;
-    real32 Height = (real32)Buffer->Height;
+#if 1
+    real32 Width = GameState->World->ChunkDimInMeters.x;
+    real32 Height = GameState->World->ChunkDimInMeters.y;
+    v2 HalfDim = 0.5f * V2(Width, Height);
+
+    //TODO: Once we switch to orthographuc STOP MULTIPLYING THIS
+    HalfDim = 2.0f * HalfDim;
 
     for (int32 ChunkOffsetY = -1;
          ChunkOffsetY <= 1;
@@ -469,10 +486,8 @@ internal void FillGroundChunk(transient_state *TranState, game_state *GameState,
                     Stamp = GameState->Ground + RandomChoice(&Series, ArrayCount(GameState->Ground));
                 }
 
-                v2 BitmapCenter = 0.5f * V2i(Stamp->Width, Stamp->Height);
-                v2 Offset = {Width * RandomUnilateral(&Series), Height * RandomUnilateral(&Series)};
-                v2 P = Center + Offset - BitmapCenter;
-                PushBitmap(RenderGroup, Stamp, 1.0f, V3(P, 0.0f));
+                v2 P = Center + Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
+                PushBitmap(RenderGroup, Stamp, 4.0f, V3(P, 0.0f));
             }
         }
     }
@@ -498,13 +513,12 @@ internal void FillGroundChunk(transient_state *TranState, game_state *GameState,
             {
                 loaded_bitmap *Stamp = GameState->Tuft + RandomChoice(&Series, ArrayCount(GameState->Tuft));
 
-                v2 BitmapCenter = 0.5f * V2i(Stamp->Width, Stamp->Height);
-                v2 Offset = {Width * RandomUnilateral(&Series), Height * RandomUnilateral(&Series)};
-                v2 P = Center + Offset - BitmapCenter;
-                PushBitmap(RenderGroup, Stamp, 1.0f, V3(P, 0.0f));
+                v2 P = Center + Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
+                PushBitmap(RenderGroup, Stamp, 0.4f, V3(P, 0.0f));
             }
         }
     }
+#endif
 
     RenderGroupToOutput(RenderGroup, Buffer);
     EndTemporaryMemory(GroundMemory);
@@ -686,18 +700,6 @@ internal void MakePyramidNormalMap(loaded_bitmap *Bitmap, real32 Roughness)
         Row += Bitmap->Pitch;
     }
 }
-
-#if 0
-internal void RequestGroundBuffers(world_position CenterP, rectangle3 Bounds)
-{
-    Bounds = Offset(Bounds, CenterP.Offset_);
-    CenterP.Offset_ = V3(0, 0, 0);
-    for(int32)
-    {
-    }
-    FillGroundChunk(TranState, GameState, TranState->GroundBuffers, &GameState->CameraP);
-}
-#endif
 
 internal void SetTopDownAlign(hero_bitmaps *Bitmap, v2 Align)
 {
@@ -903,10 +905,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                     if (ShouldBeDoor)
                     {
-                        if ((TileY % 2) || (TileX % 2))
-                        {
-                            AddWall(GameState, AbsTileX, AbsTileY, AbsTileZ);
-                        }
+                        AddWall(GameState, AbsTileX, AbsTileY, AbsTileZ);
                     }
                     else if (CreatedZDoor)
                     {
@@ -1147,49 +1146,57 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     CameraBoundsInMeters.Min.z = -3.0f * GameState->TypicalFloorHeight;
     CameraBoundsInMeters.Max.z = 1.0f * GameState->TypicalFloorHeight;
 
-#if 0
-    for(uint32 GroundBufferIndex = 0;
-        GroundBufferIndex < TranState->GroundBufferCount;
-        ++GroundBufferIndex)
+#if 1
+    //NOTE: Ground chunk rendering
+    for (uint32 GroundBufferIndex = 0;
+         GroundBufferIndex < TranState->GroundBufferCount;
+         ++GroundBufferIndex)
     {
         ground_buffer *GroundBuffer = TranState->GroundBuffers + GroundBufferIndex;
-        if(IsValid(GroundBuffer->P))
+        if (IsValid(GroundBuffer->P))
         {
             loaded_bitmap *Bitmap = &GroundBuffer->Bitmap;
             v3 Delta = Subtract(GameState->World, &GroundBuffer->P, &GameState->CameraP);
-            Bitmap->Align = 0.5f*V2i(Bitmap->Width, Bitmap->Height);
 
-            render_basis *Basis = PushStruct(&TranState->TranArena, render_basis);
-            RenderGroup->DefaultBasis = Basis;
-            Basis->P = Delta + V3(0, 0, GameState->ZOffset);
-            PushBitmap(RenderGroup, Bitmap, V3(0, 0, 0) );
+            if ((Delta.z >= -1.0f) && (Delta.z < 1.0f))
+            {
+
+                render_basis *Basis = PushStruct(&TranState->TranArena, render_basis);
+                RenderGroup->DefaultBasis = Basis;
+                Basis->P = Delta;
+                real32 GroundSideInMeters = World->ChunkDimInMeters.x;
+                PushBitmap(RenderGroup, Bitmap, GroundSideInMeters, V3(0, 0, 0));
+#if 1
+                PushRectOutline(RenderGroup, V3(0, 0, 0), V2(GroundSideInMeters, GroundSideInMeters), V4(1.0f, 1.0f, 0.0f, 1.0f));
+#endif
+            }
         }
         else
         {
-            int i=0;
+            volatile int i = 0;
         }
     }
-    
+
     {
+        //NOTE: Ground chunk updating
         world_position MinChunkP = MapIntoChunkSpace(World, GameState->CameraP, GetMinCorner(CameraBoundsInMeters));
         world_position MaxChunkP = MapIntoChunkSpace(World, GameState->CameraP, GetMaxCorner(CameraBoundsInMeters));
 
-
-        for(int32 ChunkZ = MinChunkP.ChunkZ;
-            ChunkZ <= MaxChunkP.ChunkZ;
-            ++ChunkZ)
+        for (int32 ChunkZ = MinChunkP.ChunkZ;
+             ChunkZ <= MaxChunkP.ChunkZ;
+             ++ChunkZ)
         {
 
-            for(int32 ChunkY = MinChunkP.ChunkY;
-                ChunkY <= MaxChunkP.ChunkY;
-                ++ChunkY)
+            for (int32 ChunkY = MinChunkP.ChunkY;
+                 ChunkY <= MaxChunkP.ChunkY;
+                 ++ChunkY)
             {
-                for(int32 ChunkX = MinChunkP.ChunkX;
-                    ChunkX <= MaxChunkP.ChunkX;
-                    ++ChunkX)
+                for (int32 ChunkX = MinChunkP.ChunkX;
+                     ChunkX <= MaxChunkP.ChunkX;
+                     ++ChunkX)
                 {
-//                    world_chunk *Chunk = GetWorldChunk(World, ChunkX, ChunkY, ChunkZ);
-//                    if(Chunk)
+                    //                    world_chunk *Chunk = GetWorldChunk(World, ChunkX, ChunkY, ChunkZ);
+                    //                    if(Chunk)
                     {
                         world_position ChunkCenterP = CenteredChunkPoint(ChunkX, ChunkY, ChunkZ);
                         v3 RelP = Subtract(World, &ChunkCenterP, &GameState->CameraP);
@@ -1197,21 +1204,21 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         bool32 Found = false;
                         real32 FurthestBufferLengthSq = 0.0f;
                         ground_buffer *FurthestBuffer = 0;
-                        for(uint32 GroundBufferIndex = 0;
-                            GroundBufferIndex < TranState->GroundBufferCount;
-                            ++GroundBufferIndex)
+                        for (uint32 GroundBufferIndex = 0;
+                             GroundBufferIndex < TranState->GroundBufferCount;
+                             ++GroundBufferIndex)
                         {
                             ground_buffer *GroundBuffer = TranState->GroundBuffers + GroundBufferIndex;
-                            if(AreInSameChunk(World, &GroundBuffer->P, &ChunkCenterP))
+                            if (AreInSameChunk(World, &GroundBuffer->P, &ChunkCenterP))
                             {
                                 FurthestBuffer = 0;
                                 break;
                             }
-                            else if(IsValid(GroundBuffer->P))
+                            else if (IsValid(GroundBuffer->P))
                             {
                                 v3 BufferRelP = Subtract(World, &GroundBuffer->P, &GameState->CameraP);
                                 real32 BufferLengthSq = LengthSq(BufferRelP.xy);
-                                if(FurthestBufferLengthSq < BufferLengthSq)
+                                if (FurthestBufferLengthSq < BufferLengthSq)
                                 {
                                     FurthestBufferLengthSq = BufferLengthSq;
                                     FurthestBuffer = GroundBuffer;
@@ -1224,13 +1231,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                             }
                         }
 
-                        if(FurthestBuffer)
+                        if (FurthestBuffer)
                         {
                             FillGroundChunk(TranState, GameState, FurthestBuffer, &ChunkCenterP);
                         }
-#if 0
-                        PushRectOutline(RenderGroup, RelP, World->ChunkDimInMeters.xy, V4(1.0f, 1.0f, 0.0f, 1.0f));
-#endif
                     }
                 }
             }
@@ -1248,6 +1252,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     v3 CameraP = Subtract(World, &GameState->CameraP, &SimCenterP);
 
+    render_basis *BasisReset = PushStruct(&TranState->TranArena, render_basis);
+    BasisReset->P = V3(0, 0, 0);
+    RenderGroup->DefaultBasis = BasisReset;
     PushRectOutline(RenderGroup, V3(0.0f, 0.0f, 0.0f), GetDim(ScreenBounds), V4(1.0f, 1.0f, 0.0f, 1));
     //PushRectOutline(RenderGroup, V3(0.0f, 0.0f, 0.0f), GetDim(CameraBoundsInMeters).xy, V4(1.0f, 1.0f, 1.0f, 1));
     PushRectOutline(RenderGroup, V3(0.0f, 0.0f, 0.0f), GetDim(SimBounds).xy, V4(0.0f, 1.0f, 1.0f, 1));
