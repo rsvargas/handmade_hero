@@ -64,20 +64,29 @@ typedef double real64;
 #define Pi32 3.14159265359f
 
 #if HANDMADE_SLOW == 1
-#define Assert(X) if(!(X)) { *(int*)0 = 0;}
+#define Assert(X)      \
+    if (!(X))          \
+    {                  \
+        *(int *)0 = 0; \
+    }
 #else
 #define Assert(X)
 #endif
 
 #define INVALID_CODE_PATH Assert(!"InvalidCodePath")
-#define INVALID_DEFAULT_CASE default: {INVALID_CODE_PATH;} break
+#define INVALID_DEFAULT_CASE \
+    default:                 \
+    {                        \
+        INVALID_CODE_PATH;   \
+    }                        \
+    break
 
 #define KILOBYTES(V) ((V)*1024LL)
-#define MEGABYTES(V) (KILOBYTES(V)*1024LL)
-#define GIGABYTES(V) (MEGABYTES(V)*1024LL)
-#define TERABYTES(V) (GIGABYTES(V)*1024LL)
+#define MEGABYTES(V) (KILOBYTES(V) * 1024LL)
+#define GIGABYTES(V) (MEGABYTES(V) * 1024LL)
+#define TERABYTES(V) (GIGABYTES(V) * 1024LL)
 
-#define ArrayCount(A) (sizeof(A)/sizeof((A)[0]))
+#define ArrayCount(A) (sizeof(A) / sizeof((A)[0]))
 
 inline uint32 SafeTruncateUInt64(uint64 value)
 {
@@ -86,7 +95,6 @@ inline uint32 SafeTruncateUInt64(uint64 value)
     return Result;
 }
 
-
 //TODO: Services that the platform layer provides to the game
 
 typedef struct thread_context
@@ -94,23 +102,49 @@ typedef struct thread_context
     int Placeholder;
 } thread_context;
 
-
-
 #if HANDMADE_INTERNAL
 typedef struct debug_read_file_result
 {
     uint32 ContentsSize;
-    void* Contents;
+    void *Contents;
 } debug_read_file_result;
 
-#define DEBUG_PLATFORM_FREE_FILE_MEMORY(name) void name(thread_context* Thread, void* Memory)
+#define DEBUG_PLATFORM_FREE_FILE_MEMORY(name) void name(thread_context *Thread, void *Memory)
 typedef DEBUG_PLATFORM_FREE_FILE_MEMORY(debug_platform_free_file_memory);
 
-#define DEBUG_PLATFORM_READ_ENTIRE_FILE(name) debug_read_file_result name(thread_context* Thread,char * Filename)
+#define DEBUG_PLATFORM_READ_ENTIRE_FILE(name) debug_read_file_result name(thread_context *Thread, char *Filename)
 typedef DEBUG_PLATFORM_READ_ENTIRE_FILE(debug_platform_read_entire_file);
 
-#define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name) bool32 name(thread_context* Thread, char *Filename, uint32 MemorySize, void* Memory)
+#define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name) bool32 name(thread_context *Thread, char *Filename, uint32 MemorySize, void *Memory)
 typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
+
+enum
+{
+    DebugCycleCounter_GameUpdateAndRender,
+    DebugCycleCounter_RenderGroupToOutput,
+    DebugCycleCounter_DrawRectangleSlowly,
+    DebugCycleCounter_TestPixel,
+    DebugCycleCounter_FillPixel,
+    DebugCycleCounter_Count
+};
+
+typedef struct debug_cycle_counter
+{
+    uint64 CycleCount;
+    uint32 HitCount;
+} debug_cycle_counter;
+
+extern struct game_memory *DebugGlobalMemory;
+
+#if _MSC_VER
+#define BEGIN_TIMED_BLOCK(ID) int64 StartCycleCount##ID = __rdtsc();
+#define END_TIMED_BLOCK(ID)                                                                            \
+    DebugGlobalMemory->Counters[DebugCycleCounter_##ID].CycleCount += __rdtsc() - StartCycleCount##ID; \
+    ++DebugGlobalMemory->Counters[DebugCycleCounter_##ID].HitCount;
+#else
+#define BEGIN_TIMED_BLOCK(ID)
+#define END_TIMED_BLOCK(ID)
+#endif
 
 #endif
 
@@ -125,7 +159,7 @@ typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 typedef struct game_offscreen_buffer
 {
     //NOTE: Pixels are always 32bit wide
-    void* Memory;
+    void *Memory;
     int Width;
     int Height;
     int Pitch;
@@ -152,8 +186,7 @@ typedef struct game_controller_input
     real32 StickAverageX;
     real32 StickAverageY;
 
-    union
-    {
+    union {
         game_button_state Buttons[12];
         struct
         {
@@ -179,7 +212,6 @@ typedef struct game_controller_input
     };
 } game_controller_input;
 
-
 typedef struct game_input
 {
     game_button_state MouseButtons[5];
@@ -193,26 +225,30 @@ typedef struct game_input
     game_controller_input Controllers[5];
 } game_input;
 
-
 typedef struct game_memory
 {
     bool32 IsInitialized;
     uint64 PermanentStorageSize;
-    void* PermanentStorage; //NOTE: REQUIRED to be cleared to zero at startup
+    void *PermanentStorage; //NOTE: REQUIRED to be cleared to zero at startup
 
     uint64 TransientStorageSize;
-    void* TransientStorage; //NOTE: REQUIRED to be cleared to zero at startup
+    void *TransientStorage; //NOTE: REQUIRED to be cleared to zero at startup
 
     debug_platform_free_file_memory *DEBUGPlatformFreeFileMemory;
     debug_platform_read_entire_file *DEBUGPlatformReadEntireFile;
     debug_platform_write_entire_file *DEBUGPlatformWriteEntireFile;
+
+#ifdef HANDMADE_INTERNAL
+    debug_cycle_counter Counters[DebugCycleCounter_Count];
+#endif
+
 } game_memory;
 
-#define GAME_UPDATE_AND_RENDER(name) void name(thread_context *Thread, game_memory* Memory, game_offscreen_buffer* Buffer, game_input* Input)
+#define GAME_UPDATE_AND_RENDER(name) void name(thread_context *Thread, game_memory *Memory, game_offscreen_buffer *Buffer, game_input *Input)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 
 //NOTE: At the moment, this has to be a very fast function it cannot be more than a millisecond or so.
-#define GAME_GET_SOUND_SAMPLES(name) void name(thread_context *Thread, game_memory* Memory, game_sound_output_buffer* SoundBuffer)
+#define GAME_GET_SOUND_SAMPLES(name) void name(thread_context *Thread, game_memory *Memory, game_sound_output_buffer *SoundBuffer)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 
 inline game_controller_input *GetController(game_input *Input, int unsigned ControllerIndex)
@@ -224,6 +260,5 @@ inline game_controller_input *GetController(game_input *Input, int unsigned Cont
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif
