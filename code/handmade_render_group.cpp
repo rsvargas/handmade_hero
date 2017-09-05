@@ -304,7 +304,6 @@ internal void DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2
              X <= XMax;
              ++X)
         {
-            BEGIN_TIMED_BLOCK(TestPixel);
 #if 1
             v2 PixelP = V2i(X, Y);
             v2 d = PixelP - Origin;
@@ -318,7 +317,6 @@ internal void DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2
                 (Edge2 < 0) &&
                 (Edge3 < 0))
             {
-                BEGIN_TIMED_BLOCK(FillPixel);
 #if 1
                 v2 ScreenSpaceUV = {InvWidthMax * (real32)X, FixedCastY};
                 real32 ZDiff = PixelsToMeters * ((real32)Y - OriginY);
@@ -439,13 +437,11 @@ internal void DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2
                           ((uint32)(Blended255.r + 0.5f) << 16) |
                           ((uint32)(Blended255.g + 0.5f) << 8) |
                           ((uint32)(Blended255.b + 0.5f) << 0));
-                END_TIMED_BLOCK(FillPixel);
             }
 #else
             *Pixel = Color32;
 #endif
             ++Pixel;
-            END_TIMED_BLOCK(TestPixel);
         }
         Row += Buffer->Pitch;
     }
@@ -473,11 +469,6 @@ internal void DrawRectangleHopefullyQuickly(loaded_bitmap *Buffer, v2 Origin, v2
 
     v2 NxAxis = (YAxisLength / XAxisLength) * XAxis;
     v2 NyAxis = (XAxisLength / YAxisLength) * YAxis;
-
-    uint32 Color32 = ((RoundReal32ToUInt32(Color.a * 255.0f) << 24) |
-                      (RoundReal32ToUInt32(Color.r * 255.0f) << 16) |
-                      (RoundReal32ToUInt32(Color.g * 255.0f) << 8) |
-                      (RoundReal32ToUInt32(Color.b * 255.0f) << 0));
 
     //TODO: IMPORTANT: STOP DOIND THIS
     int WidthMax = (Buffer->Width - 1) - 3;
@@ -544,11 +535,29 @@ internal void DrawRectangleHopefullyQuickly(loaded_bitmap *Buffer, v2 Origin, v2
     v2 nXAxis = InvXAxisLengthSq * XAxis;
     v2 nYAxis = InvYAxisLengthSq * YAxis;
     real32 Inv255 = 1.0f / 255.0f;
+    __m128 Inv255_4x = _mm_set1_ps(Inv255);
     real32 One255 = 255.0f;
+    __m128 One255_4x = _mm_set1_ps(One255);
+
+    __m128 One = _mm_set1_ps(1.0f);
+    __m128 Zero = _mm_set1_ps(0.0f);
+    __m128 Colorr_4x = _mm_set1_ps(Color.r);
+    __m128 Colorg_4x = _mm_set1_ps(Color.g);
+    __m128 Colorb_4x = _mm_set1_ps(Color.b);
+    __m128 Colora_4x = _mm_set1_ps(Color.a);
+
+    __m128 Originx_4x = _mm_set1_ps(Origin.x);
+    __m128 Originy_4x = _mm_set1_ps(Origin.y);
+
+    __m128 nXAxisx_4x = _mm_set1_ps(nXAxis.x);
+    __m128 nXAxisy_4x = _mm_set1_ps(nXAxis.y);
+    __m128 nYAxisx_4x = _mm_set1_ps(nYAxis.x);
+    __m128 nYAxisy_4x = _mm_set1_ps(nYAxis.y);
 
     uint8 *Row = (((uint8 *)Buffer->Memory) +
                   XMin * BITMAP_BYTES_PER_PIXEL +
                   YMin * Buffer->Pitch);
+    BEGIN_TIMED_BLOCK(ProcessPixel);
     for (int Y = YMin;
          Y <= YMax;
          ++Y)
@@ -558,69 +567,71 @@ internal void DrawRectangleHopefullyQuickly(loaded_bitmap *Buffer, v2 Origin, v2
              XI <= XMax;
              XI += 4)
         {
-            BEGIN_TIMED_BLOCK(TestPixel);
+            __m128 TexelAr = _mm_set1_ps(0.0f);
+            __m128 TexelAg = _mm_set1_ps(0.0f);
+            __m128 TexelAb = _mm_set1_ps(0.0f);
+            __m128 TexelAa = _mm_set1_ps(0.0f);
 
-            real32 TexelAr[4];
-            real32 TexelAg[4];
-            real32 TexelAb[4];
-            real32 TexelAa[4];
+            __m128 TexelBr = _mm_set1_ps(0.0f);
+            __m128 TexelBg = _mm_set1_ps(0.0f);
+            __m128 TexelBb = _mm_set1_ps(0.0f);
+            __m128 TexelBa = _mm_set1_ps(0.0f);
 
-            real32 TexelBr[4];
-            real32 TexelBg[4];
-            real32 TexelBb[4];
-            real32 TexelBa[4];
+            __m128 TexelCr = _mm_set1_ps(0.0f);
+            __m128 TexelCg = _mm_set1_ps(0.0f);
+            __m128 TexelCb = _mm_set1_ps(0.0f);
+            __m128 TexelCa = _mm_set1_ps(0.0f);
 
-            real32 TexelCr[4];
-            real32 TexelCg[4];
-            real32 TexelCb[4];
-            real32 TexelCa[4];
+            __m128 TexelDr = _mm_set1_ps(0.0f);
+            __m128 TexelDg = _mm_set1_ps(0.0f);
+            __m128 TexelDb = _mm_set1_ps(0.0f);
+            __m128 TexelDa = _mm_set1_ps(0.0f);
 
-            real32 TexelDr[4];
-            real32 TexelDg[4];
-            real32 TexelDb[4];
-            real32 TexelDa[4];
+            __m128 Destr = _mm_set1_ps(0.0f);
+            __m128 Destg = _mm_set1_ps(0.0f);
+            __m128 Destb = _mm_set1_ps(0.0f);
+            __m128 Desta = _mm_set1_ps(0.0f);
 
-            real32 Destr[4];
-            real32 Destg[4];
-            real32 Destb[4];
-            real32 Desta[4];
+            __m128 fX = _mm_set1_ps(0.0f);
+            __m128 fY = _mm_set1_ps(0.0f);
 
-            real32 fX[4];
-            real32 fY[4];
+            __m128 Blendedr = _mm_set1_ps(0.0f);
+            __m128 Blendedg = _mm_set1_ps(0.0f);
+            __m128 Blendedb = _mm_set1_ps(0.0f);
+            __m128 Blendeda = _mm_set1_ps(0.0f);
 
-            real32 Blendedr[4];
-            real32 Blendedg[4];
-            real32 Blendedb[4];
-            real32 Blendeda[4];
+            __m128 PixelPx = _mm_set_ps((real32)(XI + 3), (real32)(XI + 2), (real32)(XI + 1), (real32)(XI + 0));
+            __m128 PixelPy = _mm_set1_ps((real32)Y);
+            __m128 dx = _mm_sub_ps(PixelPx, Originx_4x);
+            __m128 dy = _mm_sub_ps(PixelPy, Originy_4x);
+
+            __m128 U = _mm_add_ps(_mm_mul_ps(dx, nXAxisx_4x), _mm_mul_ps(dy, nXAxisy_4x));
+            __m128 V = _mm_add_ps(_mm_mul_ps(dx, nYAxisx_4x), _mm_mul_ps(dy, nYAxisy_4x));
 
             bool32 ShouldFill[4];
+
+#define mmSquare(a) _mm_mul_ps(a, a)
+#define M(a, i) ((float *)&(a))[i]
 
             for (int I = 0;
                  I < 4;
                  ++I)
             {
-
-                v2 PixelP = V2i(XI + I, Y);
-                v2 d = PixelP - Origin;
-
-                real32 U = Inner(d, nXAxis);
-                real32 V = Inner(d, nYAxis);
-
-                ShouldFill[I] = ((U >= 0.0f) &&
-                                 (U <= 1.0f) &&
-                                 (V >= 0.0f) &&
-                                 (V <= 1.0f));
+                ShouldFill[I] = ((M(U, I) >= 0.0f) &&
+                                 (M(U, I) <= 1.0f) &&
+                                 (M(V, I) >= 0.0f) &&
+                                 (M(V, I) <= 1.0f));
                 if (ShouldFill[I])
                 {
 
-                    real32 texX = ((U * (real32)(Texture->Width - 2)));
-                    real32 texY = ((V * (real32)(Texture->Height - 2)));
+                    real32 texX = ((M(U, I) * (real32)(Texture->Width - 2)));
+                    real32 texY = ((M(V, I) * (real32)(Texture->Height - 2)));
 
                     int32 TX = (int32)(texX);
                     int32 TY = (int32)(texY);
 
-                    fX[I] = texX - (real32)TX;
-                    fY[I] = texY - (real32)TY;
+                    M(fX, I) = texX - (real32)TX;
+                    M(fY, I) = texY - (real32)TY;
 
                     Assert((TX >= 0.0f) && (TX < Texture->Width));
                     Assert((TY >= 0.0f) && (TY < Texture->Height));
@@ -633,105 +644,96 @@ internal void DrawRectangleHopefullyQuickly(loaded_bitmap *Buffer, v2 Origin, v2
                     uint32 SampleD = *(uint32 *)(TexelPtr + Texture->Pitch + BITMAP_BYTES_PER_PIXEL);
 
                     //v4 Texel = SRGBBilinearBlend(TexelSample, fx, fy);
-                    TexelAr[I] = (real32)((SampleA >> 16) & 0xFF);
-                    TexelAg[I] = (real32)((SampleA >> 8) & 0xFF);
-                    TexelAb[I] = (real32)((SampleA >> 0) & 0xFF);
-                    TexelAa[I] = (real32)((SampleA >> 24) & 0xFF);
+                    M(TexelAr, I) = (real32)((SampleA >> 16) & 0xFF);
+                    M(TexelAg, I) = (real32)((SampleA >> 8) & 0xFF);
+                    M(TexelAb, I) = (real32)((SampleA >> 0) & 0xFF);
+                    M(TexelAa, I) = (real32)((SampleA >> 24) & 0xFF);
 
-                    TexelBr[I] = (real32)((SampleB >> 16) & 0xFF);
-                    TexelBg[I] = (real32)((SampleB >> 8) & 0xFF);
-                    TexelBb[I] = (real32)((SampleB >> 0) & 0xFF);
-                    TexelBa[I] = (real32)((SampleB >> 24) & 0xFF);
+                    M(TexelBr, I) = (real32)((SampleB >> 16) & 0xFF);
+                    M(TexelBg, I) = (real32)((SampleB >> 8) & 0xFF);
+                    M(TexelBb, I) = (real32)((SampleB >> 0) & 0xFF);
+                    M(TexelBa, I) = (real32)((SampleB >> 24) & 0xFF);
 
-                    TexelCr[I] = (real32)((SampleC >> 16) & 0xFF);
-                    TexelCg[I] = (real32)((SampleC >> 8) & 0xFF);
-                    TexelCb[I] = (real32)((SampleC >> 0) & 0xFF);
-                    TexelCa[I] = (real32)((SampleC >> 24) & 0xFF);
+                    M(TexelCr, I) = (real32)((SampleC >> 16) & 0xFF);
+                    M(TexelCg, I) = (real32)((SampleC >> 8) & 0xFF);
+                    M(TexelCb, I) = (real32)((SampleC >> 0) & 0xFF);
+                    M(TexelCa, I) = (real32)((SampleC >> 24) & 0xFF);
 
-                    TexelDr[I] = (real32)((SampleD >> 16) & 0xFF);
-                    TexelDg[I] = (real32)((SampleD >> 8) & 0xFF);
-                    TexelDb[I] = (real32)((SampleD >> 0) & 0xFF);
-                    TexelDa[I] = (real32)((SampleD >> 24) & 0xFF);
+                    M(TexelDr, I) = (real32)((SampleD >> 16) & 0xFF);
+                    M(TexelDg, I) = (real32)((SampleD >> 8) & 0xFF);
+                    M(TexelDb, I) = (real32)((SampleD >> 0) & 0xFF);
+                    M(TexelDa, I) = (real32)((SampleD >> 24) & 0xFF);
 
                     //NOTE: Load destination
-                    Destr[I] = (real32)((*(Pixel + I) >> 16) & 0xFF);
-                    Destg[I] = (real32)((*(Pixel + I) >> 8) & 0xFF);
-                    Destb[I] = (real32)((*(Pixel + I) >> 0) & 0xFF);
-                    Desta[I] = (real32)((*(Pixel + I) >> 24) & 0xFF);
+                    M(Destr, I) = (real32)((*(Pixel + I) >> 16) & 0xFF);
+                    M(Destg, I) = (real32)((*(Pixel + I) >> 8) & 0xFF);
+                    M(Destb, I) = (real32)((*(Pixel + I) >> 0) & 0xFF);
+                    M(Desta, I) = (real32)((*(Pixel + I) >> 24) & 0xFF);
                 }
             }
 
-            for (int I = 0;
-                 I < 4;
-                 ++I)
-            {
-                //NOTE: Convert texture from sRGB to "linear" brightness space
-                TexelAr[I] = Inv255 * TexelAr[I];
-                TexelAr[I] *= TexelAr[I];
-                TexelAg[I] = Inv255 * TexelAg[I];
-                TexelAg[I] *= TexelAg[I];
-                TexelAb[I] = Inv255 * TexelAb[I];
-                TexelAb[I] *= TexelAb[I];
-                TexelAa[I] = Inv255 * TexelAa[I];
+            //NOTE: Convert texture from sRGB to "linear" brightness space
+            TexelAr = mmSquare(_mm_mul_ps(Inv255_4x, TexelAr));
+            TexelAg = mmSquare(_mm_mul_ps(Inv255_4x, TexelAg));
+            TexelAb = mmSquare(_mm_mul_ps(Inv255_4x, TexelAb));
+            TexelAa = _mm_mul_ps(Inv255_4x, TexelAa);
 
-                TexelBr[I] = Square(Inv255 * TexelBr[I]);
-                TexelBg[I] = Square(Inv255 * TexelBg[I]);
-                TexelBb[I] = Square(Inv255 * TexelBb[I]);
-                TexelBa[I] = Inv255 * TexelBa[I];
+            TexelBr = mmSquare(_mm_mul_ps(Inv255_4x, TexelBr));
+            TexelBg = mmSquare(_mm_mul_ps(Inv255_4x, TexelBg));
+            TexelBb = mmSquare(_mm_mul_ps(Inv255_4x, TexelBb));
+            TexelBa = _mm_mul_ps(Inv255_4x, TexelBa);
 
-                TexelCr[I] = Square(Inv255 * TexelCr[I]);
-                TexelCg[I] = Square(Inv255 * TexelCg[I]);
-                TexelCb[I] = Square(Inv255 * TexelCb[I]);
-                TexelCa[I] = Inv255 * TexelCa[I];
+            TexelCr = mmSquare(_mm_mul_ps(Inv255_4x, TexelCr));
+            TexelCg = mmSquare(_mm_mul_ps(Inv255_4x, TexelCg));
+            TexelCb = mmSquare(_mm_mul_ps(Inv255_4x, TexelCb));
+            TexelCa = _mm_mul_ps(Inv255_4x, TexelCa);
 
-                TexelDr[I] = Square(Inv255 * TexelDr[I]);
-                TexelDg[I] = Square(Inv255 * TexelDg[I]);
-                TexelDb[I] = Square(Inv255 * TexelDb[I]);
-                TexelDa[I] = Inv255 * TexelDa[I];
+            TexelDr = mmSquare(_mm_mul_ps(Inv255_4x, TexelDr));
+            TexelDg = mmSquare(_mm_mul_ps(Inv255_4x, TexelDg));
+            TexelDb = mmSquare(_mm_mul_ps(Inv255_4x, TexelDb));
+            TexelDa = _mm_mul_ps(Inv255_4x, TexelDa);
 
-                //NOTE: Bilinear texture Blend
-                real32 ifX = 1.0f - fX[I];
-                real32 ifY = 1.0f - fY[I];
-                real32 l0 = ifY * ifX;
-                real32 l1 = ifY * fX[I];
-                real32 l2 = fY[I] * ifX;
-                real32 l3 = fY[I] * fX[I];
+            //NOTE: Bilinear texture Blend
+            __m128 ifX = _mm_sub_ps(One, fX);
+            __m128 ifY = _mm_sub_ps(One, fY);
 
-                real32 Texelr = l0 * TexelAr[I] + l1 * TexelBr[I] + l2 * TexelCr[I] + l3 * TexelDr[I];
-                real32 Texelg = l0 * TexelAg[I] + l1 * TexelBg[I] + l2 * TexelCg[I] + l3 * TexelDg[I];
-                real32 Texelb = l0 * TexelAb[I] + l1 * TexelBb[I] + l2 * TexelCb[I] + l3 * TexelDb[I];
-                real32 Texela = l0 * TexelAa[I] + l1 * TexelBa[I] + l2 * TexelCa[I] + l3 * TexelDa[I];
+            __m128 l0 = _mm_mul_ps(ifY, ifX);
+            __m128 l1 = _mm_mul_ps(ifY, fX);
+            __m128 l2 = _mm_mul_ps(fY, ifX);
+            __m128 l3 = _mm_mul_ps(fY, fX);
 
-                //NOTE: Modulate by incoming color
-                Texelr = Texelr * Color.r;
-                Texelg = Texelg * Color.g;
-                Texelb = Texelb * Color.g;
-                Texela = Texela * Color.a;
+            __m128 Texelr = _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(l0, TexelAr), _mm_mul_ps(l1, TexelBr)), _mm_mul_ps(l2, TexelCr)), _mm_mul_ps(l3, TexelDr));
+            __m128 Texelg = _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(l0, TexelAg), _mm_mul_ps(l1, TexelBg)), _mm_mul_ps(l2, TexelCg)), _mm_mul_ps(l3, TexelDg));
+            __m128 Texelb = _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(l0, TexelAb), _mm_mul_ps(l1, TexelBb)), _mm_mul_ps(l2, TexelCb)), _mm_mul_ps(l3, TexelDb));
+            __m128 Texela = _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(l0, TexelAa), _mm_mul_ps(l1, TexelBa)), _mm_mul_ps(l2, TexelCa)), _mm_mul_ps(l3, TexelDa));
 
-                //NOTe Clamp color to  valid range
-                Texelr = Clamp01(Texelr);
-                Texelg = Clamp01(Texelg);
-                Texelb = Clamp01(Texelb);
+            Texelr = _mm_mul_ps(Texelr, Colorr_4x);
+            Texelg = _mm_mul_ps(Texelg, Colorg_4x);
+            Texelb = _mm_mul_ps(Texelb, Colorb_4x);
+            Texela = _mm_mul_ps(Texela, Colora_4x);
 
-                //NOTE: Go from sRGB to "linear" brightness space
-                Destr[I] = Square(Inv255 * Destr[I]);
-                Destg[I] = Square(Inv255 * Destg[I]);
-                Destb[I] = Square(Inv255 * Destb[I]);
-                Desta[I] = Inv255 * Desta[I];
+            Texelr = _mm_min_ps(_mm_max_ps(Texelr, Zero), One);
+            Texelg = _mm_min_ps(_mm_max_ps(Texelg, Zero), One);
+            Texelb = _mm_min_ps(_mm_max_ps(Texelb, Zero), One);
 
-                //NOTE: Destination blend
-                real32 InvTexelA = (1.0f - Texela);
-                Blendedr[I] = InvTexelA * Destr[I] + Texelr;
-                Blendedg[I] = InvTexelA * Destg[I] + Texelg;
-                Blendedb[I] = InvTexelA * Destb[I] + Texelb;
-                Blendeda[I] = InvTexelA * Desta[I] + Texela;
+            //NOTE: Go from sRGB to "linear" brightness space
+            Destr = mmSquare(_mm_mul_ps(Inv255_4x, Destr));
+            Destg = mmSquare(_mm_mul_ps(Inv255_4x, Destg));
+            Destb = mmSquare(_mm_mul_ps(Inv255_4x, Destb));
+            Desta = _mm_mul_ps(Inv255_4x, Desta);
 
-                //NOTE: Go from "linear" brightness space to sRGB
-                Blendedr[I] = One255 * SquareRoot(Blendedr[I]);
-                Blendedg[I] = One255 * SquareRoot(Blendedg[I]);
-                Blendedb[I] = One255 * SquareRoot(Blendedb[I]);
-                Blendeda[I] = One255 * Blendeda[I];
-            }
+            //NOTE: Destination blend
+            __m128 InvTexelA = _mm_sub_ps(One, Texela);
+            Blendedr = _mm_add_ps(_mm_mul_ps(InvTexelA, Destr), Texelr);
+            Blendedg = _mm_add_ps(_mm_mul_ps(InvTexelA, Destg), Texelg);
+            Blendedb = _mm_add_ps(_mm_mul_ps(InvTexelA, Destb), Texelb);
+            Blendeda = _mm_add_ps(_mm_mul_ps(InvTexelA, Desta), Texela);
+
+            //NOTE: Go from "linear" brightness space to sRGB
+            Blendedr = _mm_mul_ps(One255_4x, _mm_sqrt_ps(Blendedr));
+            Blendedg = _mm_mul_ps(One255_4x, _mm_sqrt_ps(Blendedg));
+            Blendedb = _mm_mul_ps(One255_4x, _mm_sqrt_ps(Blendedb));
+            Blendeda = _mm_mul_ps(One255_4x, Blendeda);
 
             for (int I = 0;
                  I < 4;
@@ -740,18 +742,18 @@ internal void DrawRectangleHopefullyQuickly(loaded_bitmap *Buffer, v2 Origin, v2
                 if (ShouldFill[I])
                 {
                     //NOTE: Repack
-                    *(Pixel + I) = (((uint32)(Blendeda[I] + 0.5f) << 24) |
-                                    ((uint32)(Blendedr[I] + 0.5f) << 16) |
-                                    ((uint32)(Blendedg[I] + 0.5f) << 8) |
-                                    ((uint32)(Blendedb[I] + 0.5f) << 0));
+                    *(Pixel + I) = (((uint32)(M(Blendeda, I) + 0.5f) << 24) |
+                                    ((uint32)(M(Blendedr, I) + 0.5f) << 16) |
+                                    ((uint32)(M(Blendedg, I) + 0.5f) << 8) |
+                                    ((uint32)(M(Blendedb, I) + 0.5f) << 0));
                 }
             }
 
             Pixel += 4;
-            END_TIMED_BLOCK(TestPixel);
         }
         Row += Buffer->Pitch;
     }
+    END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
     END_TIMED_BLOCK(DrawRectangleHopefullyQuickly);
 }
 
