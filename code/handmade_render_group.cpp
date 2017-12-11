@@ -450,7 +450,7 @@ internal void DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2
     END_TIMED_BLOCK(DrawRectangleSlowly);
 }
 
-#if 1
+#if 0
 #include "iacaMarks.h"
 #else
 #define IACA_VC64_START
@@ -458,7 +458,7 @@ internal void DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2
 #endif
 
 internal void DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Color,
-                                            loaded_bitmap *Texture, real32 PixelsToMeters)
+                                            loaded_bitmap *Texture, real32 PixelsToMeters, bool32 Even)
 {
     BEGIN_TIMED_BLOCK(DrawRectangleQuickly);
 
@@ -495,7 +495,7 @@ internal void DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v
     int YMin = HeightMax;
     int YMax = 0;
 
-    v2 P[4] = {Origin, Origin + XAxis, Origin + XAxis + YAxis, Origin + YAxis};
+        v2 P[4] = {Origin, Origin + XAxis, Origin + XAxis + YAxis, Origin + YAxis};
     for (int PIndex = 0;
          PIndex < ArrayCount(P);
          ++PIndex)
@@ -506,39 +506,25 @@ internal void DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v
         int FloorY = FloorReal32ToInt32(TestP.y);
         int CeilY = CeilReal32ToInt32(TestP.y);
 
-        if (XMin > FloorX)
-        {
-            XMin = FloorX;
-        }
-        if (YMin > FloorY)
-        {
-            YMin = FloorY;
-        }
-        if (XMax < CeilX)
-        {
-            XMax = CeilX;
-        }
-        if (YMax < CeilY)
-        {
-            YMax = CeilY;
-        }
+        if (XMin > FloorX) { XMin = FloorX; }
+        if (YMin > FloorY) { YMin = FloorY; }
+        if (XMax < CeilX)  { XMax = CeilX;  }
+        if (YMax < CeilY)  { YMax = CeilY;  }
     }
 
-    if (XMin < 0)
+    int32 ClipXMin = 128;
+    int32 ClipYMin = 128;
+    int32 ClipXMax = 256;
+    int32 ClipYMax = 256;
+
+    if (XMin < ClipXMin) { XMin = ClipXMin; }
+    if (YMin < ClipYMin) { YMin = ClipYMin; }
+    if (XMax > ClipXMax) { XMax = ClipXMax; }
+    if (YMax > ClipYMax) { YMax = ClipYMax; }
+
+    if(Even == (YMin%2))
     {
-        XMin = 0;
-    }
-    if (YMin < 0)
-    {
-        YMin = 0;
-    }
-    if (XMax > WidthMax)
-    {
-        XMax = WidthMax;
-    }
-    if (YMax > HeightMax)
-    {
-        YMax = HeightMax;
+        YMin += 1;
     }
 
     v2 nXAxis = InvXAxisLengthSq * XAxis;
@@ -568,11 +554,14 @@ internal void DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v
     __m128 WidthM2 = _mm_set1_ps((real32)Texture->Width - 2);
     __m128 HeightM2 = _mm_set1_ps((real32)Texture->Height - 2);
 
+    __m128i TexturePitch_4x = _mm_set1_epi32( Texture->Pitch );
+
     __m128i MaskFF = _mm_set1_epi32(0xff);
 
     uint8 *Row = (((uint8 *)Buffer->Memory) +
                   XMin * BITMAP_BYTES_PER_PIXEL +
                   YMin * Buffer->Pitch);
+    int32 RowAdvance = 2*Buffer->Pitch;
 
     int32 TextureWidth = Texture->Width;
     int32 TextureHeight = Texture->Height;
@@ -582,7 +571,7 @@ internal void DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v
     BEGIN_TIMED_BLOCK(ProcessPixel);
     for (int Y = YMin;
          Y <= YMax;
-         ++Y)
+         Y += 2)
     {
         __m128 PixelPy = _mm_set1_ps((real32)Y);
         PixelPy = _mm_sub_ps(PixelPy, Originy_4x);
@@ -632,6 +621,7 @@ internal void DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v
                 __m128 fX = _mm_sub_ps(tX, _mm_cvtepi32_ps(FetchX_4x));
                 __m128 fY = _mm_sub_ps(tY, _mm_cvtepi32_ps(FetchY_4x));
 
+#if 0
                 __m128i SampleA;
                 __m128i SampleB;
                 __m128i SampleC;
@@ -654,6 +644,47 @@ internal void DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v
                     Mi(SampleC, I) = *(uint32 *)(TexelPtr + TexturePitch);
                     Mi(SampleD, I) = *(uint32 *)(TexelPtr + TexturePitch + BITMAP_BYTES_PER_PIXEL);
                 }
+
+#else
+
+                FetchX_4x = _mm_slli_epi32( FetchX_4x, 2 ); //Multiply by BITMAP_BYTES_PER_PIXEL is like left shift by 2
+                FetchY_4x = _mm_mullo_epi32( FetchY_4x, TexturePitch_4x );
+
+                __m128i Fetch_4x = _mm_add_epi32( FetchX_4x, FetchY_4x );
+
+                int32 Fetch0 = Mi(Fetch_4x, 0);
+                int32 Fetch1 = Mi(Fetch_4x, 1);
+                int32 Fetch2 = Mi(Fetch_4x, 2);
+                int32 Fetch3 = Mi(Fetch_4x, 3);
+
+                //bilinear sample
+                uint8 *TexelPtr0 = (((uint8 *)TextureMemory) + Fetch0 );
+                uint8 *TexelPtr1 = (((uint8 *)TextureMemory) + Fetch1 );
+                uint8 *TexelPtr2 = (((uint8 *)TextureMemory) + Fetch2 );
+                uint8 *TexelPtr3 = (((uint8 *)TextureMemory) + Fetch3 );
+
+                __m128i SampleA = _mm_setr_epi32( *(uint32 *)(TexelPtr0),
+                                                  *(uint32 *)(TexelPtr1),
+                                                  *(uint32 *)(TexelPtr2),
+                                                  *(uint32 *)(TexelPtr3) );
+                
+                __m128i SampleB = _mm_setr_epi32( *(uint32 *)(TexelPtr0 + BITMAP_BYTES_PER_PIXEL),
+                                                  *(uint32 *)(TexelPtr1 + BITMAP_BYTES_PER_PIXEL),
+                                                  *(uint32 *)(TexelPtr2 + BITMAP_BYTES_PER_PIXEL),
+                                                  *(uint32 *)(TexelPtr3 + BITMAP_BYTES_PER_PIXEL) );
+
+                __m128i SampleC = _mm_setr_epi32( *(uint32 *)(TexelPtr0 + TexturePitch),
+                                                  *(uint32 *)(TexelPtr1 + TexturePitch),
+                                                  *(uint32 *)(TexelPtr2 + TexturePitch),
+                                                  *(uint32 *)(TexelPtr3 + TexturePitch) );
+
+                __m128i SampleD = _mm_setr_epi32( *(uint32 *)(TexelPtr0 + TexturePitch + BITMAP_BYTES_PER_PIXEL),
+                                                  *(uint32 *)(TexelPtr1 + TexturePitch + BITMAP_BYTES_PER_PIXEL),
+                                                  *(uint32 *)(TexelPtr2 + TexturePitch + BITMAP_BYTES_PER_PIXEL),
+                                                  *(uint32 *)(TexelPtr3 + TexturePitch + BITMAP_BYTES_PER_PIXEL) );
+
+
+#endif
 
                 //NOTE: Unpack bilinear samples
 #if 0
@@ -781,9 +812,9 @@ internal void DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v
 
             IACA_VC64_END;
         }
-        Row += Buffer->Pitch;
+        Row += RowAdvance;// Buffer->Pitch;//RowAdvance;
     }
-    END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1));
+    END_TIMED_BLOCK_COUNTED(ProcessPixel, (XMax - XMin + 1) * (YMax - YMin + 1)/2);
     END_TIMED_BLOCK(DrawRectangleQuickly);
 }
 
@@ -1063,7 +1094,11 @@ internal void RenderGroupToOutput(render_group *RenderGroup, loaded_bitmap *Outp
             DrawRectangleQuickly(OutputTarget, Basis.P,
                                           Basis.Scale * V2(Entry->Size.x, 0.0f),
                                           Basis.Scale * V2(0.0f, Entry->Size.y), Entry->Color,
-                                          Entry->Bitmap, PixelsToMeters);
+                                          Entry->Bitmap, PixelsToMeters, true);
+            DrawRectangleQuickly(OutputTarget, Basis.P,
+                                          Basis.Scale * V2(Entry->Size.x, 0.0f),
+                                          Basis.Scale * V2(0.0f, Entry->Size.y), Entry->Color,
+                                          Entry->Bitmap, PixelsToMeters, false);
 #endif
             BaseAddress += sizeof(*Entry);
         }

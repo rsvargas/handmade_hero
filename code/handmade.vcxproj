@@ -70,16 +70,16 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <NMakeBuildCommandLine>pushd $(SolutionDir)
-$(SolutionDir)\build.bat
-popd</NMakeBuildCommandLine>
+    <NMakeBuildCommandLine>rem pushd $(SolutionDir)
+rem $(SolutionDir)\build.bat
+rem popd</NMakeBuildCommandLine>
     <NMakePreprocessorDefinitions>HANDMADE_INTERNAL=1;HANDMADE_SLOW=1;HANDMADE_WIN32=1</NMakePreprocessorDefinitions>
     <NMakeIncludeSearchPath>C:\dev\handmade_hero\code</NMakeIncludeSearchPath>
-    <NMakeForcedIncludes>handmade.cpp;win32_handmade.cpp</NMakeForcedIncludes>
+    <NMakeForcedIncludes>handmade.cpp;win32_handmade.cpp;*.h;*.cpp</NMakeForcedIncludes>
     <NMakeOutput>$(SolutionDir)\build\win32_handmade.exe</NMakeOutput>
-    <NMakeReBuildCommandLine>pushd $(SolutionDir)
-$(SolutionDir)\build.bat
-popd</NMakeReBuildCommandLine>
+    <NMakeReBuildCommandLine>rem pushd $(SolutionDir)
+rem $(SolutionDir)\build.bat
+rem popd</NMakeReBuildCommandLine>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
