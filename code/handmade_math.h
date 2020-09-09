@@ -804,3 +804,63 @@ inline rectangle2 ToRectangleXY(rectangle3 A)
 
     return Result;
 }
+
+//
+//
+//
+
+struct rectangle2i
+{
+    int32 MinX, MinY;
+    int32 MaxX, MaxY;
+};
+
+inline rectangle2i Intersect(rectangle2i A, rectangle2i B)
+{
+    rectangle2i Result;
+    Result.MinX = (A.MinX < B.MinX) ? B.MinX : A.MinX;
+    Result.MinY = (A.MinY < B.MinY) ? B.MinY : A.MinY;
+    Result.MaxX = (A.MaxX > B.MaxX) ? B.MaxX : A.MaxX;
+    Result.MaxY = (A.MaxY > B.MaxY) ? B.MaxY : A.MaxY;
+    
+    return Result;
+}
+
+inline rectangle2i Union(rectangle2i A, rectangle2i B)
+{
+    rectangle2i Result;
+    Result.MinX = (A.MinX < B.MinX) ? A.MinX : B.MinX;
+    Result.MinY = (A.MinY < B.MinY) ? A.MinY : B.MinY;
+    Result.MaxX = (A.MaxX > B.MaxX) ? A.MaxX : B.MaxX;
+    Result.MaxY = (A.MaxY > B.MaxY) ? A.MaxY : B.MaxY;
+    
+    return Result;
+}
+
+inline int32 GetClampedRectArea(rectangle2i A)
+{
+    int32 Width = (A.MaxX - A.MinX);
+    int32 Height = (A.MaxY - A.MinY);
+    uint32 Result = 0;
+    if( Width > 0 && Height > 0 )
+    {
+        Result = Width * Height;
+    }
+    return Result;
+}
+
+inline bool32 HasArea(rectangle2i A)
+{
+    bool32 Result = ((A.MinX < A.MaxX) && (A.MinY - A.MaxY));
+    return Result;
+}
+
+inline rectangle2i InvertedInfinityRectangle()
+{
+    rectangle2i Result;
+
+    Result.MinX = Result.MinY = INT_MAX;
+    Result.MaxX = Result.MaxY = -INT_MAX;
+
+    return Result;
+}

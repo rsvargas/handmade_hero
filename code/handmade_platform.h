@@ -29,6 +29,10 @@ extern "C" {
 
 #if COMPILER_MSVC
 #include <intrin.h>
+#elif COMPILER_LLVM
+#include <x86intrin.h>
+#else
+#error SSE/NEON optimizations are not avaialble for this compiler yet!!!
 #endif
 
 //
@@ -49,6 +53,9 @@ typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
+
+typedef intptr_t intptr;
+typedef uintptr_t uintptr;
 
 typedef size_t memory_index;
 

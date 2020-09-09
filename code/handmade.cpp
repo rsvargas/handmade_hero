@@ -444,7 +444,7 @@ internal void FillGroundChunk(transient_state *TranState, game_state *GameState,
     render_group *RenderGroup = AllocateRenderGroup(&TranState->TranArena, MEGABYTES(4),
                                                     Buffer->Width, Buffer->Height);
 
-    Clear(RenderGroup, V4(1.0f, 0.0f, 1.0f, 1.0f));
+    Clear(RenderGroup, V4(1.0f, 1.0f, 0.0f, 1.0f));
 
     GroundBuffer->P = *ChunkP;
 
@@ -520,7 +520,7 @@ internal void FillGroundChunk(transient_state *TranState, game_state *GameState,
     }
 #endif
 
-    RenderGroupToOutput(RenderGroup, Buffer);
+    TiledRenderGroupToOutput(RenderGroup, Buffer);
     EndTemporaryMemory(GroundMemory);
 }
 
@@ -1010,7 +1010,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         }
 
         GameState->TestDiffuse = MakeEmptyBitmap(&TranState->TranArena, 256, 256, false);
-        DrawRectangle(&GameState->TestDiffuse, V2(0, 0), V2i(GameState->TestDiffuse.Width, GameState->TestDiffuse.Height), V4(0.5f, 0.5f, 0.5f, 1.0f));
+        //DrawRectangle(&GameState->TestDiffuse, V2(0, 0), V2i(GameState->TestDiffuse.Width, GameState->TestDiffuse.Height), V4(0.5f, 0.5f, 0.5f, 1.0f));
         GameState->TestNormal = MakeEmptyBitmap(&TranState->TranArena, GameState->TestDiffuse.Width, GameState->TestDiffuse.Height, false);
         MakeSphereNormalMap(&GameState->TestNormal, 0.0f);
         MakeSphereDiffuseMap(&GameState->TestDiffuse);
@@ -1373,7 +1373,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 //    PushRect(RenderGroup, startPos + V2(Entity->WalkableDim.x, -Entity->WalkableDim.y), height, smallDim, color, 0.0f);
                 //    PushRect(RenderGroup, startPos + V2(0, -Entity->WalkableDim.y), height, smallDim, color, 0.0f);
                 //}
-                PushRect(RenderGroup, V3(0, 0, Entity->WalkableHeight), Entity->WalkableDim, V4(1, 1, 0, 1));
+                PushRect(RenderGroup, V3(0, 0, Entity->WalkableHeight), Entity->WalkableDim, V4(1, 0, 1, 1));
             }
             break;
 
@@ -1574,7 +1574,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 #endif
 
-    RenderGroupToOutput(RenderGroup, DrawBuffer);
+    TiledRenderGroupToOutput(RenderGroup, DrawBuffer);
 
     EndSim(SimRegion, GameState);
     EndTemporaryMemory(SimMemory);
