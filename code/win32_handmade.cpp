@@ -999,12 +999,30 @@ internal void Win32DebugSyncDisplay(win32_offscreen_buffer* Backbuffer,
 }
 #endif
 
+DWORD WINAPI ThreadProc(LPVOID lpParameter)
+{
+    char* StringToPrint = (char*)lpParameter;
+    for(;;)
+    {
+        OutputDebugString(StringToPrint);
+        Sleep(1000);
+    }
+
+    //return 0;
+}
+
 int CALLBACK WinMain(HINSTANCE Instance,
                      HINSTANCE /*PrevInstance*/,
                      LPSTR /*CommandLine*/,
                      int /*ShowCode*/)
 {
     win32_state Win32State = {};
+
+    char * Param = "Thread started!";
+    DWORD ThreadID;
+    HANDLE ThreadHandle = CreateThread( 0, 0, ThreadProc, Param, 0, &ThreadID );
+    CloseHandle(ThreadHandle);
+    
     Win32GetEXEFileName(&Win32State);
 
     LARGE_INTEGER PerfCounterFrequencyResult;
