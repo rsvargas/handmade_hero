@@ -236,6 +236,12 @@ typedef struct game_input
     game_controller_input Controllers[5];
 } game_input;
 
+struct platform_work_queue;
+#define PLATFORM_WORK_QUEUE_CALLBACK(name) void name(platform_work_queue *Queue, void *Data)
+typedef PLATFORM_WORK_QUEUE_CALLBACK(platform_work_queue_callback);
+
+typedef void platform_add_entry(platform_work_queue *Queue, platform_work_queue_callback *Callback, void *Data);
+typedef void platform_complete_all_work(platform_work_queue *Queue);
 typedef struct game_memory
 {
     bool32 IsInitialized;
@@ -244,6 +250,11 @@ typedef struct game_memory
 
     uint64 TransientStorageSize;
     void *TransientStorage; //NOTE: REQUIRED to be cleared to zero at startup
+
+    platform_work_queue *HighPriorityQueue;
+
+    platform_add_entry *PlatformAddEntry;
+    platform_complete_all_work *PlatformCompleteAllWork;
 
     debug_platform_free_file_memory *DEBUGPlatformFreeFileMemory;
     debug_platform_read_entire_file *DEBUGPlatformReadEntireFile;
