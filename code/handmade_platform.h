@@ -95,6 +95,8 @@ typedef double real64;
 
 #define ArrayCount(A) (sizeof(A) / sizeof((A)[0]))
 
+#define Align16(Value) ((Value + 0xF) & ~0xF)
+
 inline uint32 SafeTruncateUInt64(uint64 value)
 {
     Assert(value <= 0xFFFFFFFF);

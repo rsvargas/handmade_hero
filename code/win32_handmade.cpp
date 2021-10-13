@@ -494,10 +494,10 @@ internal void Win32ResizeDIBSection(win32_offscreen_buffer &Buffer, int Width, i
     Buffer.Info.bmiHeader.biCompression = BI_RGB;
 
     //Note: casey thanks Chris Hecker!!
-    Buffer.BitmapMemorySize = (Buffer.Width * Buffer.Height) * BytesPerPixel;
+    Buffer.Pitch = Align16(Width * BytesPerPixel);
+    Buffer.BitmapMemorySize = (Buffer.Pitch * Buffer.Height);
     Buffer.Memory = VirtualAlloc(0, Buffer.BitmapMemorySize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
-    Buffer.Pitch = Width * BytesPerPixel;
 
     //TODO: probably clear this to black
 }
@@ -505,8 +505,8 @@ internal void Win32ResizeDIBSection(win32_offscreen_buffer &Buffer, int Width, i
 internal void Win32DisplayBufferInWindow(const win32_offscreen_buffer &Buffer,
                                          HDC DeviceContext, int WindowWidth, int WindowHeigth)
 {
-//TODO: Centering / black bars
-#if 0
+    //TODO: Centering / black bars
+
     if ((WindowWidth >= Buffer.Width*2) &
         (WindowHeigth >= Buffer.Height * 2))
     {
@@ -519,7 +519,6 @@ internal void Win32DisplayBufferInWindow(const win32_offscreen_buffer &Buffer,
             SRCCOPY);
     }
     else
-#endif
     {
         int OffsetX = 10;
         int OffsetY = 10;
@@ -1026,7 +1025,7 @@ internal void Win32AddEntry(platform_work_queue* Queue, platform_work_queue_call
     Entry->UserPointer = Data;
     ++Queue->CompletionGoal;
     _WriteBarrier();
-    _mm_sfence();
+    //_mm_sfence();//not necessary as x86 memory model is strongly-ordered (for normal memory)
     Queue->NextEntryToWrite = NewNextentryToWrite;
     ReleaseSemaphore(Queue->SemaphoreHandle, 1, 0);
 }
