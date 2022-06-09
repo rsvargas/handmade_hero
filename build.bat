@@ -2,7 +2,8 @@
 setlocal
 call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
 
-set CommonCompilerFlags=/Od /MTd /nologo /fp:fast /Gm- /GR- /EHa /Zo /Oi /WX /W4 /wd4201 /wd4100 /wd4189 /wd4505 /wd4127 /DHANDMADE_INTERNAL=1 /DHANDMADE_SLOW=1 /DHANDMADE_WIN32 /Z7 /FC /F4194304
+REM Optimization switches /O2 /Oi /fp:fast
+set CommonCompilerFlags=/O2 /MTd /nologo /fp:fast /Gm- /GR- /EHa /Zo /Oi /WX /W4 /wd4201 /wd4100 /wd4189 /wd4505 /wd4127 /DHANDMADE_INTERNAL=1 /DHANDMADE_SLOW=1 /DHANDMADE_WIN32 /Z7 /FC /F4194304
 set CommonLinkerFlags= -incremental:no -opt:ref  user32.lib gdi32.lib winmm.lib
 
 if not exist code/win32_handmade.cpp goto INVALID_DIR
@@ -16,7 +17,6 @@ rem cl %CommonCompilerFlags% ../code/win32_handmade.cpp /link -subsystem:windows
 
 rem compilar normal x64
 del *.pdb >NUL 2> NUL
-REM Optimization switches /O2 /Oi /fp:fast
 echo WAITING FOR PDB > lock.tmp
 cl %CommonCompilerFlags% ../code/win32_handmade.cpp /Fmwin32_handmade.map /link %CommonLinkerFlags%
 del lock.tmp

@@ -435,26 +435,21 @@ internal void FillGroundChunk(transient_state *TranState, game_state *GameState,
                               ground_buffer *GroundBuffer, world_position *ChunkP)
 {
     temporary_memory GroundMemory = BeginTemporaryMemory(&TranState->TranArena);
+    GroundBuffer->P = *ChunkP;
 
-    //TODO: Need to be able to set an orthographic display mode here
     loaded_bitmap *Buffer = &GroundBuffer->Bitmap;
     Buffer->AlignPercentage = V2(0.5f, 0.5f);
     Buffer->WidthOverHeight = 1.0f;
 
-    render_group *RenderGroup = AllocateRenderGroup(&TranState->TranArena, MEGABYTES(4),
-                                                    Buffer->Width, Buffer->Height);
-
-    Clear(RenderGroup, V4(1.0f, 1.0f, 0.0f, 1.0f));
-
-    GroundBuffer->P = *ChunkP;
-
-#if 1
     real32 Width = GameState->World->ChunkDimInMeters.x;
     real32 Height = GameState->World->ChunkDimInMeters.y;
+    Assert(Width == Height);
     v2 HalfDim = 0.5f * V2(Width, Height);
 
-    //TODO: Once we switch to orthographuc STOP MULTIPLYING THIS
-    HalfDim = 2.0f * HalfDim;
+    //TODO: Decide what our pushbuffer size is!
+    render_group *RenderGroup = AllocateRenderGroup(&TranState->TranArena, MEGABYTES(4));
+    Orthographic( RenderGroup, Buffer->Width, Buffer->Height, Buffer->Width / Width);
+    Clear(RenderGroup, V4(1.0f, 0.0f, 1.0f, 1.0f));
 
     for (int32 ChunkOffsetY = -1;
          ChunkOffsetY <= 1;
@@ -468,7 +463,15 @@ internal void FillGroundChunk(transient_state *TranState, game_state *GameState,
             int32 ChunkY = ChunkP->ChunkY + ChunkOffsetY;
             int32 ChunkZ = ChunkP->ChunkZ;
 
+            //TODO: Make random number generation more systemic
+            //TODO: Look into wang hashing or some other spatial seed generation thing!
             random_series Series = RandomSeed(139 * ChunkX + 593 * ChunkY + 329 * ChunkZ);
+
+            v4 Color = V4(1, 0, 0, 1);
+            if((ChunkX % 2) == (ChunkY % 2))
+            {
+                Color = V4(0, 0, 1, 1);
+            }
 
             v2 Center = V2(ChunkOffsetX * Width, ChunkOffsetY * Height);
 
@@ -487,7 +490,7 @@ internal void FillGroundChunk(transient_state *TranState, game_state *GameState,
                 }
 
                 v2 P = Center + Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
-                PushBitmap(RenderGroup, Stamp, 4.0f, V3(P, 0.0f));
+                PushBitmap(RenderGroup, Stamp, 2.0f, V3(P, 0.0f), Color);
             }
         }
     }
@@ -514,11 +517,10 @@ internal void FillGroundChunk(transient_state *TranState, game_state *GameState,
                 loaded_bitmap *Stamp = GameState->Tuft + RandomChoice(&Series, ArrayCount(GameState->Tuft));
 
                 v2 P = Center + Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
-                PushBitmap(RenderGroup, Stamp, 0.4f, V3(P, 0.0f));
+                PushBitmap(RenderGroup, Stamp, 0.1f, V3(P, 0.0f));
             }
         }
     }
-#endif
 
     TiledRenderGroupToOutput(TranState->RenderQueue, RenderGroup, Buffer);
     EndTemporaryMemory(GroundMemory);
@@ -1152,7 +1154,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     DrawBuffer->Height = 719;
 #endif
 
-    render_group *RenderGroup = AllocateRenderGroup(&TranState->TranArena, MEGABYTES(4), DrawBuffer->Width, DrawBuffer->Height);
+    render_group *RenderGroup = AllocateRenderGroup(&TranState->TranArena, MEGABYTES(4));
+    real32 WidthOfMonitor = 0.635f;        // NOTE: Horizontal measurement of monitor in meters
+    real32 MetersToPixels = (real32)DrawBuffer->Width * WidthOfMonitor;
+
+    Perspective(RenderGroup, DrawBuffer->Width, DrawBuffer->Height, MetersToPixels, 0.6f, 9.0f);
 
     Clear(RenderGroup, V4(0.25f, 0.25f, 0.25f, 0.0f));
 
@@ -1183,7 +1189,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             {
                 real32 GroundSideInMeters = World->ChunkDimInMeters.x;
                 PushBitmap(RenderGroup, Bitmap, GroundSideInMeters, Delta);
-#if 1
+#if 0
                 PushRectOutline(RenderGroup, Delta, V2(GroundSideInMeters, GroundSideInMeters), V4(1.0f, 1.0f, 0.0f, 1.0f));
 #endif
             }
