@@ -323,10 +323,12 @@ internal void DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2
                 real32 V = Clamp01(InvYAxisLengthSq * Inner(d, YAxis));
 
 #if 0
+                //TODO: SSE clamping
                 Assert((U >= 0.0f) && (U<=1.0f));
                 Assert((V >= 0.0f) && (V<=1.0f));
 #endif
 
+                //TODO: formalize texture boundaries!
                 real32 texX = ((U * (real32)(Texture->Width - 2)));
                 real32 texY = ((V * (real32)(Texture->Height - 2)));
 
@@ -542,6 +544,7 @@ internal void DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v
         __m128 MaxColorValue = _mm_set1_ps(255.0f*255.0f);
 
         __m128 One = _mm_set1_ps(1.0f);
+        __m128 Half = _mm_set1_ps(0.5f);
         __m128 Zero = _mm_set1_ps(0.0f);
         __m128 Four_4x = _mm_set1_ps(4.0f);
         __m128 Colorr_4x = _mm_set1_ps(Color.r);
@@ -621,8 +624,10 @@ internal void DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v
                     U = _mm_min_ps(_mm_max_ps(U, Zero), One);
                     V = _mm_min_ps(_mm_max_ps(V, Zero), One);
 
-                    __m128 tX = _mm_mul_ps(U, WidthM2);
-                    __m128 tY = _mm_mul_ps(V, HeightM2);
+                    //NOTE: Bias texture coordinates to start
+                    // on the boundary between the 0,0 and 1,1 pixels.
+                    __m128 tX = _mm_add_ps(_mm_mul_ps(U, WidthM2), Half);
+                    __m128 tY = _mm_add_ps(_mm_mul_ps(V, HeightM2), Half);
 
                     __m128i FetchX_4x = _mm_cvttps_epi32(tX);
                     __m128i FetchY_4x = _mm_cvttps_epi32(tY);

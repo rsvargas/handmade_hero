@@ -1074,24 +1074,42 @@ PLATFORM_WORK_QUEUE_CALLBACK(DoWorkerWork)
     OutputDebugStringA(Buffer);
 }
 
-struct win32_thread_info
-{
-    int LogicalThreadIndex;
-    platform_work_queue* Queue;
-};
-
 DWORD WINAPI ThreadProc(LPVOID lpParameter)
 {
-    win32_thread_info * ThreadInfo = (win32_thread_info*) lpParameter;
+    platform_work_queue* Queue = (platform_work_queue*) lpParameter;
 
     for(;;)
     {
-        if(Win32DoNextWorkQueueEntry(ThreadInfo->Queue))
+        if(Win32DoNextWorkQueueEntry(Queue))
         {
-            WaitForSingleObjectEx(ThreadInfo->Queue->SemaphoreHandle, INFINITE, FALSE);
+            WaitForSingleObjectEx(Queue->SemaphoreHandle, INFINITE, FALSE);
         }
     }
     //return 0;
+}
+
+internal void Win32MakeQueue(platform_work_queue *Queue, uint32 ThreadCount)
+{
+    Queue->CompletionGoal = 0;
+    Queue->CompletionCount = 0;
+    Queue->NextEntryToWrite = 0;
+    Queue->NextEntryToRead = 0;
+
+    uint32 InitialCount = 0;
+    Queue->SemaphoreHandle = CreateSemaphoreEx( 0, 
+                                               InitialCount,
+                                               ThreadCount,
+                                               0, 0, SEMAPHORE_ALL_ACCESS);
+
+    for(uint32 ThreadIndex = 0;
+        ThreadIndex < ThreadCount;
+        ++ThreadIndex)
+    {
+        DWORD ThreadID;
+        HANDLE ThreadHandle = CreateThread( 0, 0, ThreadProc, Queue, 0, &ThreadID );
+        CloseHandle(ThreadHandle);
+    }
+
 }
 
 int CALLBACK WinMain(HINSTANCE Instance,
@@ -1101,30 +1119,13 @@ int CALLBACK WinMain(HINSTANCE Instance,
 {
     win32_state Win32State = {};
 
-    win32_thread_info ThreadInfo[7];
+    platform_work_queue HighPriorityQueue = {};
+    Win32MakeQueue( &HighPriorityQueue, 6);
+    platform_work_queue LowPriorityQueue = {};
+    Win32MakeQueue( &LowPriorityQueue, 2);
 
-    platform_work_queue Queue = {};
 
-    uint32 InitialCount = 0;
-    uint32 ThreadCount = ArrayCount(ThreadInfo);
-
-    Queue.SemaphoreHandle = CreateSemaphoreEx( 0, 
-                                               InitialCount,
-                                               ThreadCount,
-                                               0, 0, SEMAPHORE_ALL_ACCESS);
-
-    for(uint32 ThreadIndex = 0;
-        ThreadIndex < ThreadCount;
-        ++ThreadIndex)
-    {
-        win32_thread_info *Info = ThreadInfo + ThreadIndex;
-        Info->Queue = &Queue;
-        Info->LogicalThreadIndex = ThreadIndex;
-        DWORD ThreadID;
-        HANDLE ThreadHandle = CreateThread( 0, 0, ThreadProc, Info, 0, &ThreadID );
-        CloseHandle(ThreadHandle);
-    }
-
+#if 0
     Win32AddEntry(&Queue, DoWorkerWork, "String 0");
     Win32AddEntry(&Queue, DoWorkerWork, "String 1");
     Win32AddEntry(&Queue, DoWorkerWork, "String 2");
@@ -1137,6 +1138,7 @@ int CALLBACK WinMain(HINSTANCE Instance,
     Win32AddEntry(&Queue, DoWorkerWork, "String 9");
 
     Win32CompleteAllWork(&Queue);
+#endif
 
     LARGE_INTEGER PerfCounterFrequencyResult;
     QueryPerformanceFrequency(&PerfCounterFrequencyResult);
@@ -1253,7 +1255,8 @@ int CALLBACK WinMain(HINSTANCE Instance,
             game_memory GameMemory = {};
             GameMemory.PermanentStorageSize = MEGABYTES(256);
             GameMemory.TransientStorageSize = GIGABYTES(1); //My HDD cant write a Gb of data without freezing
-            GameMemory.HighPriorityQueue = &Queue;
+            GameMemory.HighPriorityQueue = &HighPriorityQueue;
+            GameMemory.LowPriorityQueue = &LowPriorityQueue;
             GameMemory.PlatformAddEntry = Win32AddEntry;
             GameMemory.PlatformCompleteAllWork = Win32CompleteAllWork;
             GameMemory.DEBUGPlatformFreeFileMemory = DEBUGPlatformFreeFileMemory;
