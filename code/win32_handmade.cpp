@@ -520,12 +520,19 @@ internal void Win32DisplayBufferInWindow(const win32_offscreen_buffer &Buffer,
     }
     else
     {
+#if 0
         int OffsetX = 10;
         int OffsetY = 10;
+
         PatBlt(DeviceContext, 0, 0, WindowWidth, OffsetY, BLACKNESS);
         PatBlt(DeviceContext, 0, OffsetY + Buffer.Height, WindowWidth, WindowHeigth, BLACKNESS);
         PatBlt(DeviceContext, 0, 0, OffsetX, WindowHeigth, BLACKNESS);
         PatBlt(DeviceContext, OffsetX + Buffer.Width, 0, WindowWidth, WindowHeigth, BLACKNESS);
+#else
+        int OffsetX = 0;
+        int OffsetY = 0;
+#endif
+
 
         //NOTE: for prototyping purpoeses, we're going to always blit
         // 1-to-1 pixels to make sure we don't introduce artifacts with
@@ -1194,8 +1201,8 @@ int CALLBACK WinMain(HINSTANCE Instance,
             WS_OVERLAPPEDWINDOW | WS_VISIBLE, //DWORD dwStyle,
             CW_USEDEFAULT,                    //int X,
             CW_USEDEFAULT,                    //int Y,
-            1960,                             //CW_USEDEFAULT, //int nWidth,
-            1140,                              //CW_USEDEFAULT, //int nHeight,
+            1936,                             //CW_USEDEFAULT,//int nWidth, (looks like windows adds 16 border pixels )
+            1119,                             //CW_USEDEFAULT,//int nHeight,(looks like windows adds 39 pixels for borders and title)
             0,                                //HWND hWndParent,
             0,                                //HMENU hMenu,
             Instance,                         //HINSTANCE hInstance,
