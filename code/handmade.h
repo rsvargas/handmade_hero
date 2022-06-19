@@ -180,6 +180,52 @@ struct ground_buffer
     loaded_bitmap Bitmap;
 };
 
+enum game_asset_id
+{
+    GAI_Backdrop,
+    GAI_Shadow,
+    GAI_Tree,
+    GAI_Sword,
+    GAI_Stairwell,
+
+    GAI_Count,
+};
+
+enum asset_state
+{
+    AssetState_Unloaded,
+    AssetState_Queued,
+    AssetState_Loaded,
+};
+struct asset_handle
+{
+    asset_state State;
+    loaded_bitmap *Bitmap;
+};
+
+struct game_assets
+{
+    struct transient_state *TranState;
+    memory_arena Arena;
+    debug_platform_read_entire_file *ReadEntireFile;
+
+    loaded_bitmap *Bitmaps[GAI_Count];
+
+    //NOTE: Array'd assets
+    loaded_bitmap Grass[2];
+    loaded_bitmap Ground[4];
+    loaded_bitmap Tuft[3];
+
+    //NOTE: Structured assets
+    hero_bitmaps HeroBitmaps[4];
+};
+inline loaded_bitmap *GetBitmap(game_assets* Assets, game_asset_id ID)
+{
+    loaded_bitmap *Result = Assets->Bitmaps[ID];
+
+    return Result;
+}
+
 struct game_state
 {
     memory_arena WorldArena;
@@ -194,18 +240,6 @@ struct game_state
 
     uint32 LowEntityCount;
     low_entity LowEntities[100000];
-
-    loaded_bitmap Grass[2];
-    loaded_bitmap Ground[4];
-    loaded_bitmap Tuft[3];
-
-    loaded_bitmap Backdrop;
-    loaded_bitmap Shadow;
-    hero_bitmaps HeroBitmaps[4];
-
-    loaded_bitmap Tree;
-    loaded_bitmap Sword;
-    loaded_bitmap Stairwell;
 
     //TODO: Must be power of two
     pairwise_collision_rule *CollisionRuleHash[256];
@@ -250,6 +284,8 @@ struct transient_state
     uint32 EnvMapHeight;
     //NOTE: 0 - bottom, 1 is middle, 2 is top;
     environment_map EnvMaps[3];
+
+    game_assets Assets;
 };
 
 inline low_entity* GetLowEntity(game_state *GameState, uint32 Index)
@@ -266,5 +302,7 @@ inline low_entity* GetLowEntity(game_state *GameState, uint32 Index)
 
 global_variable platform_add_entry *PlatformAddEntry;
 global_variable platform_complete_all_work *PlatformCompleteAllWork;
+
+internal void LoadAsset(game_assets *Assets, game_asset_id ID);
 
 #endif// HANDMADE_H
