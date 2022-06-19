@@ -172,7 +172,7 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUGPlatformReadEntireFile)
                 }
                 else
                 {
-                    DEBUGPlatformFreeFileMemory(Thread, Result.Contents);
+                    DEBUGPlatformFreeFileMemory(Result.Contents);
                     Result.Contents = 0;
                 }
             }
@@ -1470,7 +1470,6 @@ int CALLBACK WinMain(HINSTANCE Instance,
                                 NewController->IsConnected = false;
                             }
                         }
-                        thread_context Thread;
 
                         game_offscreen_buffer Buffer = {};
                         Buffer.Memory = GlobalBackbuffer.Memory;
@@ -1490,7 +1489,7 @@ int CALLBACK WinMain(HINSTANCE Instance,
                         }
                         if (Game.UpdateAndRender)
                         {
-                            Game.UpdateAndRender(&Thread, &GameMemory, &Buffer, NewInput);
+                            Game.UpdateAndRender(&GameMemory, &Buffer, NewInput);
                             HandleDebugCycleCounters(&GameMemory);
                         }
 
@@ -1576,7 +1575,7 @@ int CALLBACK WinMain(HINSTANCE Instance,
                             SoundBuffer.Samples = Samples;
                             if (Game.GetSoundSamples)
                             {
-                                Game.GetSoundSamples(&Thread, &GameMemory, &SoundBuffer);
+                                Game.GetSoundSamples(&GameMemory, &SoundBuffer);
                             }
 #if HANDMADE_INTERNAL
                             win32_debug_time_marker *Marker = &DebugTimeMarkers[DebugTimeMarkersIndex];

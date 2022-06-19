@@ -1,8 +1,0 @@
-{
-    "cmd": "{PROJECT_PATH}/build.bat",
-    "args": [],
-    "sh": false,
-    "cwd": "{PROJECT_PATH}",
-    "env": {},
-    "errorMatch": "\\n(?<file>[\\\\0-9a-zA-Z:\\._]+)\\((?<line>\\d+)\\)"
-}
