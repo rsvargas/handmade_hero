@@ -1236,6 +1236,8 @@ internal render_group *AllocateRenderGroup(game_assets *Assets, memory_arena *Ar
     Result->Transform.OffsetP = V3(0.0f, 0.0f, 0.0f);;
     Result->Transform.Scale = 1.0f;
 
+    Result->MissingResourceCount = 0;
+
     return Result;
 }
 
@@ -1281,7 +1283,9 @@ inline entity_basis_p_result GetRenderEntityBasisP(render_transform *Transform, 
 {
     entity_basis_p_result Result = {};
 
-    v3 P = V3(OriginalP.xy, 0.0f) + Transform->OffsetP;
+    //NOTE(Vargas): why did we zeroed Z on this?
+    // v3 P = V3(OriginalP.xy, 0.0f) + Transform->OffsetP;
+    v3 P = OriginalP + Transform->OffsetP;
 
     if(Transform->Orthographic)
     {
@@ -1373,6 +1377,7 @@ inline void PushBitmap(render_group *Group, game_asset_id ID, real32 Height, v3 
     else
     {
         LoadAsset(Group->Assets, ID);
+        ++Group->MissingResourceCount;
     }
 }
 
@@ -1460,5 +1465,13 @@ inline rectangle2 GetCameraRectangleAtDistance(render_group *Group, real32 Dista
 inline rectangle2 GetCameraRectangleAtTarget(render_group *Group)
 {
     rectangle2 Result = GetCameraRectangleAtDistance(Group, Group->Transform.DistanceAboveTarget);
+    return Result;
+}
+
+
+inline bool32 AllResourcesPresent(render_group *Group)
+{
+    bool32 Result = (Group->MissingResourceCount == 0);
+
     return Result;
 }

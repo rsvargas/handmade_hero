@@ -4,9 +4,15 @@
 
 #if COMPILER_MSVC
 #define CompletePreviousWritesBeforeFutureWrites _WriteBarrier(); 
+inline uint32 AtomicCompareExchangeUInt32(uint32 volatile *Value, uint32 Expected, uint32 New)
+{
+    uint32 Result = _InterlockedCompareExchange((volatile long*)Value, Expected, New);
+
+    return Result;
+}
 #else
-//TODO: define these on GCC/LLVM?
-#define CompletePreviousWritesBeforeFutureWrites
+//TODO: define these on GCC/LLVM? 
+//#define CompletePreviousWritesBeforeFutureWrites
 #endif
 
 inline int32 SignOf(int32 Value)

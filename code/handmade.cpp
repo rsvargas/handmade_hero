@@ -472,6 +472,39 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(FillGroundChunkWork)
     EndTaskWithMemory(Work->Task);
 }
 
+internal int PickBest(int32 InfoCount, asset_bitmap_info *Infos, asset_tag *Tags, 
+                      real32 *MatchVector, real32 *WeightVector)
+{
+    real32 BestDiff = Real32Maximum;
+    int32 BestIndex = 0;
+
+    for(int32 InfoIndex = 0;
+        InfoIndex < InfoCount;
+        ++InfoIndex )
+    {
+        asset_bitmap_info *Info = Infos + InfoIndex;
+
+        real32 TotalWwightedDiff = 0.0f;
+        for( uint32 TagIndex = Info->FirstTagIndex;
+            TagIndex < Info->OnePastLastTagIndex;
+            ++TagIndex)
+        {
+            asset_tag *Tag = Tags + TagIndex;
+            real32 Difference = MatchVector[Tags->ID] - Tag->Value;
+            real32 Weighted = WeightVector[Tags->ID] * AbsoluteValue( Difference );
+            TotalWwightedDiff += Weighted;
+        }
+
+        if( BestDiff > TotalWwightedDiff)
+        {
+            BestDiff = TotalWwightedDiff;
+            BestIndex = InfoIndex;
+        }
+    }
+
+    return BestIndex;
+}
+
 internal void FillGroundChunk(transient_state *TranState, game_state *GameState,
                               ground_buffer *GroundBuffer, world_position *ChunkP)
 {
@@ -479,7 +512,6 @@ internal void FillGroundChunk(transient_state *TranState, game_state *GameState,
     if(Task)
     {
         fill_ground_chunk_work *Work = PushStruct(&Task->Arena, fill_ground_chunk_work);
-        GroundBuffer->P = *ChunkP;
 
         loaded_bitmap *Buffer = &GroundBuffer->Bitmap;
         Buffer->AlignPercentage = V2(0.5f, 0.5f);
@@ -570,12 +602,18 @@ internal void FillGroundChunk(transient_state *TranState, game_state *GameState,
             }
         }
 
-        Work->RenderGroup = RenderGroup;
-        Work->Buffer = Buffer;
-        Work->Task = Task;
+        if(AllResourcesPresent(RenderGroup))
+        {
+            GroundBuffer->P = *ChunkP;
 
-        PlatformAddEntry( TranState->LowPriorityQueue, FillGroundChunkWork, Work);
+            Work->RenderGroup = RenderGroup;
+            Work->Buffer = Buffer;
+            Work->Task = Task;
+
+            PlatformAddEntry( TranState->LowPriorityQueue, FillGroundChunkWork, Work);
+        }
     }
+    
 }
 
 internal void ClearBitmap(loaded_bitmap *Bitmap)
@@ -790,6 +828,12 @@ struct load_asset_work
     game_asset_id ID;
     loaded_bitmap * Bitmap;
     task_with_memory *Task;
+
+    bool32 HasAlignment;
+    int32 AlignX;
+    int32 TopDownAlignY;
+
+    asset_state FinalState;
 };
 //PLATFORM_WORK_QUEUE_CALLBACK(name) void name(platform_work_queue *Queue, void *Data)
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork)
@@ -800,51 +844,76 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork)
     thread_context *Thread = 0;
 
     game_assets *Assets = Work->Assets;
-    *Work->Bitmap = DEBUGLoadBMP(Thread, Assets->ReadEntireFile, Work->FileName );
-                                //, AlignX, TopDownAlignY
-    //TODO: Fennce!    
-    Assets->Bitmaps[Work->ID] = Work->Bitmap;                                               
+    if(Work->HasAlignment)
+    {
+        *Work->Bitmap = DEBUGLoadBMP(Thread, Assets->ReadEntireFile, Work->FileName, 
+                                    Work->AlignX, Work->TopDownAlignY );
+    }
+    else
+    {
+        *Work->Bitmap = DEBUGLoadBMP(Thread, Assets->ReadEntireFile, Work->FileName );
+    }
+
+    CompletePreviousWritesBeforeFutureWrites;
+    Assets->Bitmaps[Work->ID].Bitmap = Work->Bitmap;
+    Assets->Bitmaps[Work->ID].State = Work->FinalState;
 
     EndTaskWithMemory(Work->Task);
 }
 
 internal void LoadAsset(game_assets *Assets, game_asset_id ID)
 {
-    task_with_memory * Task =  BeginTaskWithMemory(Assets->TranState);
-    if(Task)
+    if( AtomicCompareExchangeUInt32((uint32*)&Assets->Bitmaps[ID].State, AssetState_Unloaded, AssetState_Queued ) == AssetState_Unloaded )
     {
-        load_asset_work *Work = PushStruct(&Assets->Arena, load_asset_work);    
-        Work->Assets = Assets;
-        Work->ID = ID;
-        Work->FileName = "";
-        Work->Task = Task;
-        Work->Bitmap = PushStruct(&Assets->Arena, loaded_bitmap );
-
-        switch(ID)
+        task_with_memory * Task =  BeginTaskWithMemory(Assets->TranState);
+        if(Task)
         {
-            case GAI_Backdrop:
-            {
-                Work->FileName =  "test/test_background.bmp";
-            } break;
-            case GAI_Shadow:
-            {
-                Work->FileName =  "test/test_hero_shadow.bmp"; //, 72, 182);
-            } break;
-            case GAI_Tree:
-            {
-                Work->FileName =  "test2/tree00.bmp"; //, 40, 80);
-            } break;
-            case GAI_Stairwell:
-            {
-                Work->FileName =  "test2/rock02.bmp";
-            } break;
-            case GAI_Sword:
-            {
-                Work->FileName =  "test2/rock03.bmp"; //, 29, 10);
-            } break;
-        }
+            load_asset_work *Work = PushStruct(&Assets->Arena, load_asset_work);    
+            Work->Assets = Assets;
+            Work->ID = ID;
+            Work->FileName = "";
+            Work->Task = Task;
+            Work->Bitmap = PushStruct(&Assets->Arena, loaded_bitmap );
+            Work->HasAlignment = false;
+            Work->FinalState = AssetState_Loaded;
 
-        PlatformAddEntry( Assets->TranState->LowPriorityQueue, LoadAssetWork, Work);
+            switch(ID)
+            {
+                case GAI_Backdrop:
+                {
+                    Work->FileName = "test/test_background.bmp";
+                } break;
+                case GAI_Shadow:
+                {
+                    Work->FileName = "test/test_hero_shadow.bmp"; 
+                    Work->HasAlignment = true;
+                    Work->AlignX = 72;
+                    Work->TopDownAlignY = 182;
+
+                } break;
+                case GAI_Tree:
+                {
+                    Work->FileName = "test2/tree00.bmp";
+                    Work->HasAlignment = true;
+                    Work->AlignX = 40;
+                    Work->TopDownAlignY = 80;
+                } break;
+                case GAI_Stairwell:
+                {
+                    Work->FileName = "test2/rock02.bmp";
+                } break;
+                case GAI_Sword:
+                {
+                    Work->FileName = "test2/rock03.bmp";
+                    Work->HasAlignment = true;
+                    Work->AlignX = 29;
+                    Work->TopDownAlignY = 10;
+
+                } break;
+            }
+
+            PlatformAddEntry( Assets->TranState->LowPriorityQueue, LoadAssetWork, Work);
+        }
     }
 }
 
@@ -1376,21 +1445,25 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                             ground_buffer *GroundBuffer = TranState->GroundBuffers + GroundBufferIndex;
                             if (AreInSameChunk(World, &GroundBuffer->P, &ChunkCenterP))
                             {
+                                //This ground buffer is done (correct chunk and filled)
                                 FurthestBuffer = 0;
                                 break;
                             }
                             else if (IsValid(GroundBuffer->P))
                             {
+                                //This ground buffer is filled
                                 v3 BufferRelP = Subtract(World, &GroundBuffer->P, &GameState->CameraP);
                                 real32 BufferLengthSq = LengthSq(BufferRelP.xy);
                                 if (FurthestBufferLengthSq < BufferLengthSq)
                                 {
+                                    //and also is the furthest away, we can safely overwrite it
                                     FurthestBufferLengthSq = BufferLengthSq;
                                     FurthestBuffer = GroundBuffer;
                                 }
                             }
                             else
                             {
+                                //this ground buffer is empty, we can fill it
                                 FurthestBufferLengthSq = Real32Maximum;
                                 FurthestBuffer = GroundBuffer;
                             }
